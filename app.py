@@ -8,7 +8,6 @@ from modules.spreadsheet import PandasAgent
 from modules.layout import Layout
 from modules.utils import Utilities
 
-
 def reload_module(module_name):
     """For update changes
     made to modules in localhost (press r)"""
@@ -28,7 +27,9 @@ layout, utils = Layout(), Utilities()
 
 layout.show_header("CSV, Excel")
 
-os.environ["OPENAI_API_KEY"] = st.secrets["openai_secret_key"]
+
+if not os.getenv('OPENAI_API_KEY'):
+    os.environ["OPENAI_API_KEY"] = st.secrets["openai_secret_key"]
 
 st.session_state.setdefault("reset_chat", False)
 

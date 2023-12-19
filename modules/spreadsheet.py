@@ -26,7 +26,6 @@ class PandasAgent :
         pass
 
     def get_agent_response(self, df, query):
-        print("Generating agnt response")
         # llm = OpenAI(model="gpt-4-1106-preview")
         llm = OpenAI()
         pandaAi = SmartDataframe(df, config={"llm": llm})
@@ -35,6 +34,8 @@ class PandasAgent :
         sys.stdout = captured_output = StringIO()
 
         response = pandaAi.chat(query)
+        responseAsString = response if isinstance(response, str) else response.to_string()
+
         fig = plt.gcf()
         if fig.get_axes():
                     # Adjust the figure size
@@ -48,7 +49,7 @@ class PandasAgent :
             st.image(buf, caption="Generated Plot")
         
         sys.stdout = old_stdout
-        return response, captured_output
+        return responseAsString, captured_output
 
     def process_agent_thoughts(self,captured_output):
         thoughts = captured_output.getvalue()
