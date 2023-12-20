@@ -1,0 +1,5 @@
+test_pandasai: pandasai (https://github.com/gventuri/pandas-ai/tree/main) + SmartDataframe
+test_langchain_csv_agent: langchain.create_csv_agent (https://lancerninja.com/pandas-and-csv-agents-langchain/)
+test_langchain_df_agent: langchain.create_pandas_dataframe_agent (https://lancerninja.com/pandas-and-csv-agents-langchain/)
+test_langchain_vs: langchain + vector store + csv (https://how.wtf/how-to-use-csv-files-in-vector-stores-with-langchain.html)
+test_langchain_db_agent: SQLDatabaseSequentialChain (https://medium.com/dataherald/how-to-langchain-sqlchain-c7342dd41614)
