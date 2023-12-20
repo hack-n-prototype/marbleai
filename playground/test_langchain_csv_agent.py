@@ -9,7 +9,7 @@ FILE_PATH1 = "/Users/hazelguo/Downloads/Healthcare Price Lists - Sheet1.csv"
 FILE_PATH2 = "/Users/hazelguo/Downloads/Healthcare Price Lists - Sheet2.csv"
 
 csv_agent = create_csv_agent(
-    OpenAI(temperature=0),
+   OpenAI(temperature=0),
    [FILE_PATH1, FILE_PATH2],
    verbose=True,
    agent_type=AgentType.ZERO_SHOT_REACT_DESCRIPTION)
