@@ -7,14 +7,17 @@ import pandas as pd
 from pandasai import SmartDataframe
 from pandasai.llm import OpenAI
 
-FILE_PATH = "/Users/hazelguo/Downloads/Healthcare Price Lists - Sheet1.csv"
+FILE_PATH1 = "/Users/hazelguo/Downloads/Healthcare Price Lists - Sheet1.csv"
+FILE_PATH2 = "/Users/hazelguo/Downloads/Healthcare Price Lists - Sheet2.csv"
 
-df = pd.read_csv(FILE_PATH)
+df1 = pd.read_csv(FILE_PATH1)
+df2 = pd.read_csv(FILE_PATH2)
+df3 = pd.merge(df1, df2, on="Provider")
 
 llm = OpenAI(api_token=os.getenv('OPENAI_API_KEY'))
 
-df = SmartDataframe(df, config={"llm": llm})
-response = df.chat('Which are the 5 happiest countries?')
+df = SmartDataframe(df3, config={"llm": llm})
+response = df.chat('Join the two tables by provider. Return the price list link for providers at location A')
 
 if (isinstance(response, str)):
     print(response)
