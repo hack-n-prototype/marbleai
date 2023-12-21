@@ -48,13 +48,19 @@ print(prompt)
 
 with get_openai_callback() as cb:
     response = openai.ChatCompletion.create(
-        model="gpt-4",
+        model="gpt-3.5-turbo",
         messages=[{"role": "system", "content": SYSTEM_PROMPT},
                   {"role": "user", "content": prompt}])
 
 sql_query = response["choices"][0]["message"]["content"]
 print(sql_query)
+
 res = cur.execute(sql_query)
-print(res.fetchall())
+
+
+result = res.fetchall()
+print(type(result))
+print(str(result))
+print(result)
 
 print(cb)
