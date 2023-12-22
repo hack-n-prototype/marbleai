@@ -2,7 +2,7 @@ import os
 import importlib
 import sys
 import streamlit as st
-from modules.spreadsheet import PandasAgent
+from modules.spreadsheet import SheetAgent
 from modules.layout import Layout
 from modules.utils import Utilities
 import sqlite3
@@ -13,7 +13,11 @@ logger = get_logger(__name__)
 
 SYSTEM_PROMPT = "You help users write SQL queries."
 MODEL = "gpt-4"
-PROMPT_SUFFIX = "Return SQL query. Query only, no explanation. Ask questions if in doubt."
+PROMPT_TEMPLATE = """
+{df_info}
+User question: {query}
+Return SQL query. Query only, no explanation. Ask questions if in doubt.
+"""
 
 # Create your connection.
 cnx = sqlite3.connect(':memory:')
@@ -47,27 +51,13 @@ st.session_state.setdefault("reset_chat", False)
 
 uploaded_data_frames = utils.handle_upload()
 
-##### process uploaded data frame #######
-prompt_prefix = f"I have {len(uploaded_data_frames)} tables.\n"
-
-for idx, df in enumerate(uploaded_data_frames):
-    table_name = f"table{idx}"
-    # Convert csv to table
-    df.to_sql(name=table_name, con=cnx, index=False)
-    # Get table column names
-    cur.execute(f"SELECT * FROM {table_name} LIMIT 0")
-    col_name = [description[0] for description in cur.description]
-    prompt_prefix += f"'{table_name}' has columns -- {','.join(col_name)}.\n"
-
-logger.info(prompt_prefix)
-
-##### end process uploaded data frame ######
-
-
 if uploaded_data_frames:
+    df_info = utils.handle_uploaded_df(cnx, cur, uploaded_data_frames)
+    logger.info(db_info)
+
     if "chat_history" not in st.session_state:
         st.session_state["chat_history"] = []
-    csv_agent = PandasAgent()
+    csv_agent = SheetAgent()
 
     with st.form(key="query"):
         query = st.text_input(
@@ -80,8 +70,7 @@ if uploaded_data_frames:
         if reset_chat_button:
             st.session_state["chat_history"] = []
     if submitted_query:
-        prompt = prompt_prefix + f"Now user asks: {query}. {PROMPT_SUFFIX}"
-
+        prompt = PROMPT_TEMPLATE.format(d_info=df_info, query=query)
         logger.info(prompt)
 
         # TODO: DO NOT DO THIS OVER AND OVER AGAIN.

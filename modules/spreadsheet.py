@@ -1,15 +1,9 @@
-import re
-import sys
-from io import StringIO, BytesIO
-import matplotlib.pyplot as plt
 import streamlit as st
 from langchain.callbacks import get_openai_callback
 from streamlit_chat import message
 
-from pandasai.llm import OpenAI
-from pandasai import SmartDataframe
 
-class PandasAgent :
+class SheetAgent:
 
     @staticmethod
     def count_tokens_agent(agent, query):
