@@ -4,7 +4,7 @@ test_langchain_df_agent: langchain.create_pandas_dataframe_agent (https://lancer
 test_langchain_vs: langchain + vector store + csv (https://how.wtf/how-to-use-csv-files-in-vector-stores-with-langchain.html)
 test_langchain_db_agent: SQLDatabaseSequentialChain (https://medium.com/dataherald/how-to-langchain-sqlchain-c7342dd41614)
 test_sqlite: convert csv to sqlite, gpt SQL queries
-
+test_csv_python: write uploaded file to local, ask AI for python script
 --------
 
 long term memory

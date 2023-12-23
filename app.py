@@ -5,23 +5,20 @@ import streamlit as st
 from modules.spreadsheet import SheetAgent
 from modules.layout import Layout
 from modules.utils import Utilities
-import sqlite3
 import openai
 
 from modules.logger import get_logger
 logger = get_logger(__name__)
 
-SYSTEM_PROMPT = "You help users write SQL queries."
+SYSTEM_PROMPT = "You write python script to answer user query."
 MODEL = "gpt-4"
 PROMPT_TEMPLATE = """
-{df_info}
-User question: {query}
-Return SQL query. Query only, no explanation. Ask questions if in doubt.
-"""
+{csv_info}
 
-# Create your connection.
-cnx = sqlite3.connect(':memory:')
-cur = cnx.cursor()
+User query: {query}.
+
+Return python script to read paths and answer user's query. Ask questions if in doubt.
+"""
 
 def reload_module(module_name):
     """For update changes
@@ -42,7 +39,6 @@ layout, utils = Layout(), Utilities()
 
 layout.show_header("CSV")
 
-
 if not os.getenv('OPENAI_API_KEY'):
     os.environ["OPENAI_API_KEY"] = st.secrets["openai_secret_key"]
 openai.api_key = os.getenv('OPENAI_API_KEY')
@@ -52,8 +48,8 @@ st.session_state.setdefault("reset_chat", False)
 uploaded_data_frames = utils.handle_upload()
 
 if uploaded_data_frames:
-    df_info = utils.handle_uploaded_df(cnx, cur, uploaded_data_frames)
-    logger.info(db_info)
+    csv_info = utils.handle_uploaded_df(uploaded_data_frames)
+    logger.info(csv_info)
 
     if "chat_history" not in st.session_state:
         st.session_state["chat_history"] = []
@@ -70,23 +66,26 @@ if uploaded_data_frames:
         if reset_chat_button:
             st.session_state["chat_history"] = []
     if submitted_query:
-        prompt = PROMPT_TEMPLATE.format(d_info=df_info, query=query)
+        prompt = PROMPT_TEMPLATE.format(csv_info=csv_info, query=query)
         logger.info(prompt)
 
         # TODO: DO NOT DO THIS OVER AND OVER AGAIN.
-        response = openai.ChatCompletion.create(
+        gpt_response = openai.ChatCompletion.create(
             model=MODEL,
             messages=[{"role": "system", "content": SYSTEM_PROMPT},
-                      {"role": "user", "content": prompt}])
+                      {"role": "user", "content": prompt}],
+            temperature=0)
 
-        sql_query = response["choices"][0]["message"]["content"]
-        logger.info(sql_query)
-
+        gpt_response = gpt_response["choices"][0]["message"]["content"]
+        logger.info(gpt_response)
+        code_exec_output = None
         try:
-            res = str(cur.execute(sql_query).fetchall())
-            logger.info(res)
+            code = utils.extract_code_from_string(gpt_response)
+            logger.info(code)
+            code_exec_output = utils.capture_exec_stdout(code)
+            logger.info(code_exec_output)
         except:
-            res = sql_query
+            pass
 
-        csv_agent.update_chat_history(query, res)
+        csv_agent.update_chat_history(query, code_exec_output if code_exec_output else gpt_response)
         csv_agent.display_chat_history()
