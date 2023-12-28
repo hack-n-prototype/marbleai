@@ -7,13 +7,12 @@ from modules import utils
 from langchain.callbacks import get_openai_callback
 import openai
 from modules import constants
-import re
 
 from modules.logger import get_logger
 logger = get_logger(__name__)
 
 
-CSV_FORMAT_SYSTEM_PROMPT = "You help users format CSV to database."
+CSV_FORMAT_SYSTEM_PROMPT = "You help users format CSV."
 CSV_FORMAT_PROMPT_TEMPLATE = """
 I need to cleanup one CSV file so that it can be saved to database. For example:
 1. Remove all comma in numbers. 1,234 -> 1234
@@ -26,6 +25,17 @@ The file is at path "{path}". Here are the first 3 rows:
 Return python script to read from path, format the CSV, and write back to the original path.
 You are only allowed to use pandas. 
 """
+
+PROMPT_BASE_TEMPLATE = """
+I have {length} tables in database.
+{table_samples}
+"""
+SINGLE_TABLE_SAMPLE_TEMPLATAE = """
+table name: {name}
+{sample_data}
+"""
+
+
 TMP_PATH_TEMPLATE = "/tmp/{name}"
 
 def get_script_to_cleanup_csv(name, sample):
@@ -37,8 +47,9 @@ def get_script_to_cleanup_csv(name, sample):
         response = openai.ChatCompletion.create(
             model=constants.MODEL,
             messages=[{"role": "system", "content": CSV_FORMAT_SYSTEM_PROMPT},
-                      {"role": "user", "content": prompt}])
-    print(cb)
+                      {"role": "user", "content": prompt}],
+            temperature=0)
+    logger.debug(cb)
 
     res = response["choices"][0]["message"]["content"]
 
@@ -56,32 +67,46 @@ def exec_cleanup_script(name, df, script):
 
 
 """
-table_info[name]: (sample, script)
+table_info[name]: {
+    table_name: str
+    script: str -- script is based on path /tmp/name
+    original_sample: df
+    formatted_sample: df
+}
 """
 def refresh_cleanup_script(uploaded):
     """
-    table_info[name]: (sample, script) -- script is operate on path /tmp/name
     This function refreshes table_info:
-        1. first remove any out-dated file from table_info
+        1. first remove any out-dated entries from table_info
         2. if a file exists in uploaded but not table_info, add it
     @return: added
     TODO: we should hash-sum the entire file
     """
 
     # Delete files with out-dated schema
+    to_del = []
     for name in st.session_state.table_info:
-        if (name not in uploaded) or (str(uploaded[name].head(constants.PREVIEW_CSV_ROWS)) != st.session_state.table_info[name][0]):
-            del st.session_state.table_info[name]
+        if (name not in uploaded) or (str(uploaded[name].head(constants.PREVIEW_CSV_ROWS)) != str(st.session_state.table_info[name]["original_sample"])):
+            to_del.append(name)
+    logger.debug("to_del: " + str(to_del))
+    for name in to_del:
+        del st.session_state.table_info[name]
 
     added = []
     for name in uploaded:
         # TODO: add name to added if hash sum doesn't match (maning file has changed)
         if name not in st.session_state.table_info:
             added.append(name)
-            sample = str(uploaded[name].head(constants.PREVIEW_CSV_ROWS))
-            script = get_script_to_cleanup_csv(name, sample)
-            st.session_state.table_info[name] = (sample, script)
+            original_sample = uploaded[name].head(constants.PREVIEW_CSV_ROWS)
+            script = get_script_to_cleanup_csv(name, original_sample)
+            st.session_state.table_info[name] = {
+                "table_name": utils.convert_to_lowercase(name),
+                "script": script,
+                "original_sample": original_sample,
+                "formatted_sample": None
+            }
 
+    logger.debug("added: " + str(added))
     return added
 
 def handle_upload(cnx):
@@ -99,30 +124,23 @@ def handle_upload(cnx):
 
         added = refresh_cleanup_script(uploaded)
 
-        print("******************")
-        print("******************")
-        print("******************")
-        print({
-            "added": added,
-            "table_info": st.session_state.table_info
-        })
-
+        # TODO: we may want to rerun the script on all files (and re-save them to db) in case user refresh.
         if added:
             ## TODO:hash sum the entire file
             for name in added:
-                (sample, script) = st.session_state.table_info[name]
+                table_info_item = st.session_state.table_info[name]
                 try:
-                    new_df = exec_cleanup_script(name, uploaded[name], script)
+                    formatted_df = exec_cleanup_script(name, uploaded[name], table_info_item["script"])
                 except Exception as e:
                     logger.error(f"Cannot cleanup CSV: {e}")
                     return
                 else:
-                    new_df.to_sql(name=name, con=cnx, index=False, if_exists='replace')
+                    formatted_df.to_sql(name=table_info_item["table_name"], con=cnx, index=False, if_exists='replace')
+                    st.session_state.table_info[name]["formatted_sample"] = formatted_df.head(constants.PREVIEW_CSV_ROWS)
 
-            table_sample = "\n".join([f"{name}\n{st.session_state.table_info[name][0]}" for name in st.session_state.table_info])
-            st.session_state.prompt_base = constants.PROMPT_BASE_TEMPLATE.format(length=len(uploaded), table_samples=table_sample)
+            table_sample = "\n".join([SINGLE_TABLE_SAMPLE_TEMPLATAE.format(name=item["table_name"], sample_data=item["formatted_sample"]) for item in st.session_state.table_info.values()])
+            st.session_state.prompt_base = PROMPT_BASE_TEMPLATE.format(length=len(st.session_state.table_info), table_samples=table_sample)
             ### TODO: add info about unique & null item
-            logger.info(st.session_state.prompt_base)
     else:
         st.session_state["reset_chat"] = True
 

@@ -1,8 +1,6 @@
 import string
 import random
 import re
-import io
-import sys
 
 from modules.logger import get_logger
 logger = get_logger(__name__)
@@ -20,30 +18,20 @@ def extract_code_from_string(text):
     return matches[0]
 
 
-def capture_exec_stdout(code):
-    # Create a StringIO object to capture output
-    output_buffer = io.StringIO()
+def convert_to_lowercase(s):
+    """
+    Convert a string to lowercase and remove non-alphabetic characters.
 
-    # Save the current stdout
-    current_stdout = sys.stdout
+    Parameters:
+    s (str): The string to be converted.
 
-    # Redirect stdout to the buffer
-    sys.stdout = output_buffer
+    Returns:
+    str: The converted string.
+    """
+    # Convert the string to lowercase
+    lowercase_string = s.lower()
 
-    try:
-        # Execute the code
-        exec(code)
-    except Exception as e:
-        logger.error(f"Error occurred: {e}")
-        return None
-    else:
-        # Restore stdout
-        sys.stdout = current_stdout
+    # Keep only alphabetic characters
+    cleaned_string = ''.join(char for char in lowercase_string if char.isalnum())
 
-        # Get the content of the buffer
-        output = output_buffer.getvalue()
-
-        # Close the buffer
-        output_buffer.close()
-
-        return output
+    return cleaned_string

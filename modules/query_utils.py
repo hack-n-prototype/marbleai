@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 
 QUERY_PROMPT_TEMPLATE = """
 User ask: {query}
-You are allowed to use SQL queries only. Return the steps to answer user query. No need to cleanup or process data. No need to provide SQL queries. Keep answer concise.
+Return the steps to answer user query with SQL. No need to cleanup or process data. No need to provide SQL queries. Keep answer concise.
 """
 
 PROCEED_PROMPT_TEMPLATE = """
@@ -30,7 +30,8 @@ BUTTON_TEXT_PROCEED = "Looks good, proceed!"
 BUTTON_TEXT_JOIN_DETAILS = "Tell me more about join"
 
 def query_openai(query_template):
-    logger.info(query_template)
+    logger.debug("system prompt: " + st.session_state.prompt_base)
+    logger.debug("user prompt: " + query_template)
     with get_openai_callback() as cb:
         res = openai.ChatCompletion.create(
             model=constants.MODEL,
@@ -38,8 +39,8 @@ def query_openai(query_template):
                   {"role": "user", "content": query_template.format(query=st.session_state.user_query)}],
             temperature=0)
 
-        print(cb)
-        return res["choices"][0]["message"]["content"]
+    logger.debug(cb)
+    return res["choices"][0]["message"]["content"]
 
 def button_click_proceed():
     chat_utils.update_chat_history(query=BUTTON_TEXT_PROCEED)
@@ -51,7 +52,6 @@ def button_click_join():
     return None
 
 def handle_button_click(text):
-    logger.info(text)
     return BUTTON_TO_FUNC[text]()
 
 def answer_user_query():

@@ -27,11 +27,11 @@ def setup_session():
             st.session_state[key] = func()
 
     _set_value_if_not_exist("id", lambda: utils.generate_random_string(length=10))
-    _set_value_if_not_exist("chat_history", lambda:[])
-    _set_value_if_not_exist("table_info", lambda:{})
-    _set_value_if_not_exist("prompt_base", lambda:"")
-    _set_value_if_not_exist("user_query",  lambda:"")
-    _set_value_if_not_exist("button_clicked", lambda:"")
+    _set_value_if_not_exist("chat_history", lambda: [])
+    _set_value_if_not_exist("table_info", lambda: {})
+    _set_value_if_not_exist("prompt_base", lambda: None)
+    _set_value_if_not_exist("user_query", lambda: None)
+    _set_value_if_not_exist("button_clicked", lambda: None)
 
     st.set_page_config(layout="wide", page_icon="💬", page_title="Robby | Chat-Bot 🤖")
     st.markdown(
@@ -52,11 +52,10 @@ cnx = sqlite3.connect(f"/tmp/{st.session_state.id}.db")
 file_utils.handle_upload(cnx)
 
 if st.session_state.table_info:
-
     # Show table preview
     for name in st.session_state.table_info:
         with st.expander(f"{name} sample"):
-            st.table(st.session_state.table_info[name][0])
+            st.table(st.session_state.table_info[name]["original_sample"])
 
     # Show user input box
     with st.form(key="query"):
@@ -76,12 +75,12 @@ if st.session_state.table_info:
         query_utils.answer_user_query()
 
     # Handle button click
-    # TODO: couldn't figure out sqlite & threads.
-    # putting the code here works
+    # TODO: couldn't figure out sqlite & threads. Doing it here works.
+    logger.debug("button_clicked: " +  str(st.session_state.button_clicked))
     if st.session_state.button_clicked:
         sql = query_utils.handle_button_click(st.session_state.button_clicked)
-        st.session_state.button_clicked = ""
-        logger.info(sql)
+        st.session_state.button_clicked = None
+        logger.debug("sql: " + str(sql))
         if sql:
             res = str(cnx.cursor().execute(sql).fetchall())
             chat_utils.update_chat_history(result=res)
