@@ -33,9 +33,9 @@ def setup_session():
     _set_value_if_not_exist("user_query", lambda: None)
     _set_value_if_not_exist("button_clicked", lambda: None)
 
-    st.set_page_config(layout="wide", page_icon="💬", page_title="Robby | Chat-Bot 🤖")
+    st.set_page_config(layout="wide", page_icon="💬", page_title="Marble | Chat-Bot 🤖")
     st.markdown(
-        "<h1 style='text-align: center;'> Ask Robby about your CSV files ! 😁</h1>",
+        "<h1 style='text-align: center;'> Ask Marble about your CSV files ! 😁</h1>",
         unsafe_allow_html=True,
     )
     st.session_state.setdefault("reset_chat", False)

@@ -5,8 +5,8 @@ Things related to asking openai and processing user queries
 import openai
 from modules import constants
 import streamlit as st
-from langchain.callbacks import get_openai_callback
 from modules import chat_utils
+from modules import utils
 
 from modules.logger import get_logger
 logger = get_logger(__name__)
@@ -32,19 +32,20 @@ BUTTON_TEXT_JOIN_DETAILS = "Tell me more about join"
 def query_openai(query_template):
     logger.debug("system prompt: " + st.session_state.prompt_base)
     logger.debug("user prompt: " + query_template)
-    with get_openai_callback() as cb:
-        res = openai.ChatCompletion.create(
-            model=constants.MODEL,
-            messages=[{"role": "system", "content": st.session_state.prompt_base},
-                  {"role": "user", "content": query_template.format(query=st.session_state.user_query)}],
-            temperature=0)
-
-    logger.debug(cb)
+    prompt = query_template.format(query=st.session_state.user_query)
+    utils.log_num_tokens_from_string(st.session_state.prompt_base + prompt)
+    res = openai.ChatCompletion.create(
+        model=constants.MODEL,
+        messages=[{"role": "system", "content": st.session_state.prompt_base},
+                  {"role": "user", "content": prompt}],
+        temperature=0)
+    utils.log_num_tokens_from_string(res, type="response")
     return res["choices"][0]["message"]["content"]
 
 def button_click_proceed():
     chat_utils.update_chat_history(query=BUTTON_TEXT_PROCEED)
-    return query_openai(PROCEED_PROMPT_TEMPLATE)
+    res = query_openai(PROCEED_PROMPT_TEMPLATE)
+    return utils.extract_code_from_string(res)
 
 def button_click_join():
     res = query_openai(JOIN_PROMPT_TEMPLATE)

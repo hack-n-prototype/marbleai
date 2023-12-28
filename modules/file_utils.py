@@ -4,7 +4,6 @@ Everything related to handling files (uploads etc)
 import streamlit as st
 import pandas as pd
 from modules import utils
-from langchain.callbacks import get_openai_callback
 import openai
 from modules import constants
 
@@ -42,17 +41,15 @@ def get_script_to_cleanup_csv(name, sample):
     path = TMP_PATH_TEMPLATE.format(name=name)
 
     prompt = CSV_FORMAT_PROMPT_TEMPLATE.format(path=path, sample=sample)
-
-    with get_openai_callback() as cb:
-        response = openai.ChatCompletion.create(
-            model=constants.MODEL,
-            messages=[{"role": "system", "content": CSV_FORMAT_SYSTEM_PROMPT},
-                      {"role": "user", "content": prompt}],
-            temperature=0)
-    logger.debug(cb)
+    utils.log_num_tokens_from_string(CSV_FORMAT_SYSTEM_PROMPT + prompt)
+    response = openai.ChatCompletion.create(
+        model=constants.MODEL,
+        messages=[{"role": "system", "content": CSV_FORMAT_SYSTEM_PROMPT},
+                  {"role": "user", "content": prompt}],
+        temperature=0)
+    utils.log_num_tokens_from_string(response, "response")
 
     res = response["choices"][0]["message"]["content"]
-
     code = utils.extract_code_from_string(res)
     return code
 
@@ -88,7 +85,7 @@ def refresh_cleanup_script(uploaded):
     for name in st.session_state.table_info:
         if (name not in uploaded) or (str(uploaded[name].head(constants.PREVIEW_CSV_ROWS)) != str(st.session_state.table_info[name]["original_sample"])):
             to_del.append(name)
-    logger.debug("to_del: " + str(to_del))
+    logger.debug("processing uploaded file, out-dated files: " + str(to_del))
     for name in to_del:
         del st.session_state.table_info[name]
 
@@ -106,7 +103,7 @@ def refresh_cleanup_script(uploaded):
                 "formatted_sample": None
             }
 
-    logger.debug("added: " + str(added))
+    logger.debug("processing uploaded file, new or updated files: " + str(added))
     return added
 
 def handle_upload(cnx):
