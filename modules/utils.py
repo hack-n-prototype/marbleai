@@ -7,7 +7,6 @@ from modules import constants
 from modules.logger import get_logger
 logger = get_logger(__name__)
 
-
 def generate_random_string(length=30, charset=string.ascii_letters + string.digits):
     return ''.join(random.choice(charset) for _ in range(length))
 

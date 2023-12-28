@@ -53,9 +53,9 @@ file_utils.handle_upload(cnx)
 
 if st.session_state.table_info:
     # Show table preview
-    for name in st.session_state.table_info:
+    for name, item in st.session_state.table_info.items():
         with st.expander(f"{name} sample"):
-            st.table(st.session_state.table_info[name]["original_sample"])
+            st.dataframe(item.original_sample)
 
     # Show user input box
     with st.form(key="query"):
