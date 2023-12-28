@@ -28,7 +28,7 @@ def setup_session():
 
     _set_value_if_not_exist("id", lambda: utils.generate_random_string(length=10))
     _set_value_if_not_exist("chat_history", lambda:[])
-    _set_value_if_not_exist("cached_upload_files", lambda:[])
+    _set_value_if_not_exist("table_info", lambda:{})
     _set_value_if_not_exist("prompt_base", lambda:"")
     _set_value_if_not_exist("user_query",  lambda:"")
     _set_value_if_not_exist("button_clicked", lambda:"")
@@ -51,12 +51,12 @@ setup_session()
 cnx = sqlite3.connect(f"/tmp/{st.session_state.id}.db")
 file_utils.handle_upload(cnx)
 
-if st.session_state.cached_upload_files:
+if st.session_state.table_info:
 
     # Show table preview
-    for (name, sample) in st.session_state.table_samples:
+    for name in st.session_state.table_info:
         with st.expander(f"{name} sample"):
-            st.table(sample)
+            st.table(st.session_state.table_info[name][0])
 
     # Show user input box
     with st.form(key="query"):
