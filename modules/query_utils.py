@@ -29,34 +29,50 @@ Looks like there are four different types of joins. Explain them, clarify which 
 BUTTON_TEXT_PROCEED = "Looks good, proceed!"
 BUTTON_TEXT_JOIN_DETAILS = "Tell me more about join"
 
-def query_openai(query_template):
+def query_openai(query_template, useStream=False):
     logger.debug("system prompt: " + st.session_state.prompt_base)
     logger.debug("user prompt: " + query_template)
     with get_openai_callback() as cb:
-        res = openai.ChatCompletion.create(
-            model=constants.MODEL,
-            messages=[{"role": "system", "content": st.session_state.prompt_base},
-                  {"role": "user", "content": query_template.format(query=st.session_state.user_query)}],
-            temperature=0)
+        if(useStream):
+            full_response = chat_utils.update_chat_stream(openai.ChatCompletion.create(
+                model=constants.MODEL,
+                messages=[{"role": "system", "content": st.session_state.prompt_base},
+                    {"role": "user", "content": query_template.format(query=st.session_state.user_query)}],
+                temperature=0,
+                max_tokens=50,
+                stream=useStream,))
 
-    logger.debug(cb)
-    return res["choices"][0]["message"]["content"]
+        else:
+            full_response = openai.ChatCompletion.create(
+                model=constants.MODEL,
+                messages=[{"role": "system", "content": st.session_state.prompt_base},
+                    {"role": "user", "content": query_template.format(query=st.session_state.user_query)}],
+                max_tokens=50,
+                temperature=0,
+                stream=useStream)
+        # st.session_state.messages.append({"role": "assistant", "content": full_response})
+        # print(cb)
+        # chat_utils.update_chat_history(result=full_response)
+        return full_response
 
 def button_click_proceed():
-    chat_utils.update_chat_history(query=BUTTON_TEXT_PROCEED)
-    return query_openai(PROCEED_PROMPT_TEMPLATE)
+    return ("sql", query_openai(PROCEED_PROMPT_TEMPLATE, False))
 
 def button_click_join():
-    res = query_openai(JOIN_PROMPT_TEMPLATE)
-    chat_utils.update_chat_history(query=BUTTON_TEXT_JOIN_DETAILS, result=res, action=[BUTTON_TEXT_PROCEED])
-    return None
+    res = query_openai(JOIN_PROMPT_TEMPLATE, True)
+    
+    # chat_utils.update_chat_history(query=BUTTON_TEXT_JOIN_DETAILS, result=res, action=[BUTTON_TEXT_PROCEED])
+    return ("text", res)
 
 def handle_button_click(text):
+    chat_utils.update_chat_history("user", text)
+    st.rerun()
     return BUTTON_TO_FUNC[text]()
 
 def answer_user_query():
-    res = query_openai(QUERY_PROMPT_TEMPLATE)
-    chat_utils.update_chat_history(st.session_state.user_query, res, action=[BUTTON_TEXT_PROCEED, BUTTON_TEXT_JOIN_DETAILS])
+    res = query_openai(QUERY_PROMPT_TEMPLATE, True)
+    return res
+    # chat_utils.update_chat_history(st.session_state.user_query, res, action=[BUTTON_TEXT_PROCEED, BUTTON_TEXT_JOIN_DETAILS])
 
 BUTTON_TO_FUNC = {
     BUTTON_TEXT_PROCEED: button_click_proceed,

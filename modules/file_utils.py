@@ -39,6 +39,7 @@ table name: {name}
 TMP_PATH_TEMPLATE = "/tmp/{name}"
 
 def get_script_to_cleanup_csv(name, sample):
+    return """print("hello")"""
     path = TMP_PATH_TEMPLATE.format(name=name)
 
     prompt = CSV_FORMAT_PROMPT_TEMPLATE.format(path=path, sample=sample)
@@ -130,7 +131,8 @@ def handle_upload(cnx):
             for name in added:
                 table_info_item = st.session_state.table_info[name]
                 try:
-                    formatted_df = exec_cleanup_script(name, uploaded[name], table_info_item["script"])
+                    # formatted_df = exec_cleanup_script(name, uploaded[name], table_info_item["script"])
+                    formatted_df = uploaded[name]
                 except Exception as e:
                     logger.error(f"Cannot cleanup CSV: {e}")
                     return
