@@ -40,7 +40,6 @@ def _get_script_to_cleanup_csv(path, sample):
     return code
 
 class TableInfo:
-
     def __init__(self, file_name, original_sample):
         self.table_name = utils.convert_to_lowercase(file_name)
         self.script = _get_script_to_cleanup_csv(self._get_tmp_file_path(), original_sample)
@@ -50,8 +49,9 @@ class TableInfo:
     def __str__(self):
         return f"TableInfo(table_name={self.table_name}, script={self.script}, original_sample={self.original_sample}, formatted_sample={self.formatted_sample})"
 
-
     def format_df_and_update_formatted_sample(self, original_df):
+        # self.formatted_sample = original_df.head(constants.PREVIEW_CSV_ROWS)
+        # return original_df
         path = self._get_tmp_file_path()
         original_df.to_csv(path, mode="w+")
         try:
@@ -70,8 +70,3 @@ class TableInfo:
 def format_table_info_dict(dict):
     return "\n".join([SINGLE_TABLE_SAMPLE_TEMPLATAE.format(name=item.table_name, sample_data=item.formatted_sample) for item in
                dict.values()])
-
-def print_table_info_dict(dict):
-    for name, value in dict.items():
-        print(name)
-        print(str(value))

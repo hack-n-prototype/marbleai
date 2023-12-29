@@ -41,7 +41,7 @@ def refresh_cleanup_script(uploaded):
             original_sample = uploaded[name].head(constants.PREVIEW_CSV_ROWS)
             st.session_state.table_info[name] = table_info.TableInfo(utils.convert_to_lowercase(name), original_sample)
 
-    logger.debug("processing uploaded file, new or updated files: " + str(added))
+    logger.debug(f"processing uploaded file, new or updated files: {added}")
     return added
 
 def handle_upload(cnx):
@@ -51,6 +51,8 @@ def handle_upload(cnx):
     uploaded_files = st.sidebar.file_uploader("upload", accept_multiple_files=True, type="csv",
                                               label_visibility="collapsed")
 
+    logger.debug(f"received {len(uploaded_files)} uploaded files.")
+    # TODO: bc of streaming, this gets called a lot of times. we should improve it.
     if uploaded_files is not None:
         uploaded = {}
         for path in uploaded_files:
@@ -70,7 +72,7 @@ def handle_upload(cnx):
                 formatted_df.to_sql(name=item.table_name, con=cnx, index=False, if_exists='replace')
 
             st.session_state.prompt_base = PROMPT_BASE_TEMPLATE.format(length=len(st.session_state.table_info), table_samples=table_info.format_table_info_dict(st.session_state.table_info))
-            table_info.print_table_info_dict(st.session_state.table_info)
+            logger.debug("system prompt " + st.session_state.prompt_base)
             ### TODO: add info about unique & null item
     else:
         st.session_state["reset_chat"] = True
