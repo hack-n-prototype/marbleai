@@ -11,10 +11,10 @@ class MessageItem:
     def show_on_screen(self):
         if self.role == "actions":
             for button in self.content:
-                if st.button(button):
+                if st.button(button.value):
                     logger.info(f"button '{button}' clicked.")
-                    st.session_state.button_clicked = button
-                    update_chat_history("user", button)
+                    st.session_state.button_clicked = button.value
+                    update_chat_history("user", button.value)
                     st.rerun()
         else:
             with st.chat_message(self.role):

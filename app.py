@@ -5,6 +5,8 @@ import streamlit as st
 from modules import utils
 from modules import file_helpers
 from modules import query_helpers
+from modules import vector_db
+from modules import button_helpers
 from modules.ui_helpers import update_chat_history
 import openai
 import sqlite3
@@ -30,7 +32,7 @@ def setup_session():
     st.session_state.setdefault("user_query", None)
     st.session_state.setdefault("button_clicked", None)
     st.session_state.setdefault("messages", [])
-
+    st.session_state.setdefault("vector_db", None)
     st.set_page_config(layout="wide", page_icon="💬", page_title="Marble | Chat-Bot 🤖")
     st.markdown(
         "<h1 style='text-align: center;'> Ask Marble about your CSV files ! 😁</h1>",
@@ -48,6 +50,12 @@ setup_session()
 cnx = sqlite3.connect(f"/tmp/{st.session_state.id}.db")
 file_helpers.handle_upload(cnx)
 
+# Add buttons to vector db
+if not st.session_state.vector_db:
+    docs, ids = vector_db.create_button_documents()
+    db = vector_db.Vectordb(openai.api_key, docs, ids)
+    st.session_state.vector_db = db
+
 if st.session_state.table_info:
     # Show table preview
     for name, item in st.session_state.table_info.items():
@@ -61,9 +69,12 @@ if st.session_state.table_info:
     if prompt := st.chat_input("e-g : How many rows ? "):
         st.session_state.user_query = prompt
         update_chat_history("user", prompt).show_on_screen()
-        res, actions = query_helpers.answer_user_query()
+        res = query_helpers.answer_user_query()
         update_chat_history("assistant", res)
-        update_chat_history("actions",  actions).show_on_screen()
+
+        # Determine actions related to res
+        related_buttons = button_helpers.determine_buttons(st.session_state.vector_db, res)
+        update_chat_history("actions",  related_buttons).show_on_screen()
 
     # Handle button clicked
     if st.session_state.button_clicked:
