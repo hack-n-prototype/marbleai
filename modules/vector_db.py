@@ -4,7 +4,7 @@ from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.docstore.document import Document
 from modules.logger import get_logger
-from modules.button_helpers import Button
+from modules.button_helpers import BUTTON_TEXTS
 logger = get_logger(__name__)
 
 BUTTON_RESULTS_SIZE = 2 # total number of buttons to display minus 1 for the proceed button
@@ -22,12 +22,6 @@ class Vectordb:
         self.db.add_documents(docs)
 
 def create_button_documents():
-    button_list = list(Button)
-    button_docs = []
-    ids = []
-    for button in button_list:
-        if(button is not Button.BUTTON_TEXT_PROCEED):
-            button_docs.append(Document(page_content=button.value))
-            ids.append(button.value)
-    return button_docs, ids
+    button_docs = [Document(page_content=button, metadata={"source": "local"}) for button in BUTTON_TEXTS]
+    return button_docs, BUTTON_TEXTS
 

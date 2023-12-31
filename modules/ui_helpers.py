@@ -1,5 +1,6 @@
 import streamlit as st
-from modules.constants import QUERY_PROMPT_TEMPLATE, BUTTON_TEXT_TO_PROMPT
+from modules.constants import QUERY_PROMPT_TEMPLATE
+from modules.button_helpers import get_button_label, BUTTON_TEXT_TO_PROMPT
 
 from modules.logger import get_logger
 logger = get_logger(__name__)
@@ -21,10 +22,10 @@ class MessageItem:
             return
         elif self.role == "actions":
             for button in self.content:
-                if st.button(button.value):
+                if st.button(button):
                     logger.info(f"button '{button}' clicked.")
-                    st.session_state.button_clicked = button.value
-                    append_user_message("action", button.value)
+                    st.session_state.pending_query_label = get_button_label(button)
+                    append_user_message("action", button)
         else:
             with st.chat_message(self.role):
                 st.markdown(self.content)

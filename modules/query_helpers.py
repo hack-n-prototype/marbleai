@@ -8,7 +8,6 @@ from modules import constants
 import streamlit as st
 from modules import ui_helpers
 from modules import utils
-from modules.constants import BUTTON_TEXT_PROCEED, BUTTON_TEXT_JOIN_DETAILS
 
 from modules.logger import get_logger
 logger = get_logger(__name__)
@@ -40,24 +39,11 @@ def query_openai(use_stream=False):
     utils.log_num_tokens_from_string(response, label="response")
     return response
 
-def button_click_proceed():
-    res = query_openai(False)
-    return [("sql", utils.extract_code_from_string(res))]
-
-def button_click_join():
-    # res = query_openai(JOIN_PROMPT_TEMPLATE, True)
-    # return [("assistant", res), ("actions", [button_helpers.Button.BUTTON_TEXT_PROCEED])]
-    res = query_openai(True)
-    return [("assistant", res), ("actions", [BUTTON_TEXT_PROCEED])]
-
-def handle_button_click(text):
-    return BUTTON_TO_FUNC[button_helpers.string_to_button(text)]()
-
-def answer_user_query():
-    res = query_openai(True)
-    return res
-
-BUTTON_TO_FUNC = {
-    button_helpers.Button.BUTTON_TEXT_PROCEED: button_click_proceed,
-    button_helpers.Button.BUTTON_TEXT_JOIN_DETAILS: button_click_join
-}
+def handle_query(label):
+    if label == "sql":
+        res = query_openai(False)
+        return [("sql", utils.extract_code_from_string(res))]
+    elif label == "query":
+        res = query_openai(True)
+        buttons = button_helpers.determine_buttons(res)
+        return [("assistant", res), ("actions", buttons)]
