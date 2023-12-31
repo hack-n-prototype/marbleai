@@ -8,7 +8,7 @@ import re
 
 MODEL = "gpt-4"
 
-FILE_PATH = "/Users/hazelguo/Downloads/tmp.csv"
+FILE_PATH = "/Users/hazelguo/Downloads/CSV Dummy Data Sebas - Sheet2.csv"
 
 PY_SYSTEM_PROMPT = "You help users convert CSV into DB"
 SQL_SYSTEM_PROMPT = "You help users write SQL queries."

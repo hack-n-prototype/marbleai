@@ -1,6 +1,6 @@
 from modules import utils
 import openai
-from modules import constants
+from modules.constants import PREVIEW_CSV_ROWS, MODEL
 import pandas as pd
 
 from modules.logger import get_logger
@@ -29,7 +29,7 @@ def _get_script_to_cleanup_csv(path, sample):
     prompt = CSV_FORMAT_PROMPT_TEMPLATE.format(path=path, sample=sample)
     utils.log_num_tokens_from_string(CSV_FORMAT_SYSTEM_PROMPT + prompt)
     response = openai.ChatCompletion.create(
-        model=constants.MODEL,
+        model=MODEL,
         messages=[{"role": "system", "content": CSV_FORMAT_SYSTEM_PROMPT},
                   {"role": "user", "content": prompt}],
         temperature=0)
@@ -40,20 +40,42 @@ def _get_script_to_cleanup_csv(path, sample):
     return code
 
 class TableInfo:
-    def __init__(self, file_name, original_sample):
+    """
+    To bypass CSV processing:
+    1. in __init__: uncomment "self.script = ''", and comment out "self.script = _get_script...."
+    2. in _format_df: uncomment "return df"
+    """
+    def __init__(self, file_name, df, cnx):
+        """
+        1. Init table_name, script, original_sample
+        2. Format df with script, and update formatted df
+        3. Write formatted_df to db
+        """
+
         self.table_name = utils.convert_to_lowercase(file_name)
-        self.script = _get_script_to_cleanup_csv(self._get_tmp_file_path(), original_sample)
-        self.original_sample = original_sample
-        self.formatted_sample = None
+        self.original_sample = df.head(PREVIEW_CSV_ROWS)
+
+        # Ask openai for cleanup script. The script uses tmp_file_path
+        tmp_file_path = f"/tmp/{self.table_name}"
+        # self.script = ""
+        self.script = _get_script_to_cleanup_csv(tmp_file_path, self.original_sample)
+
+        # Execute cleanup script against original df
+        formatted_df = self._format_df(tmp_file_path, df)
+        self.formatted_sample = formatted_df.head(PREVIEW_CSV_ROWS)
+
+        # Save clean csv to DB
+        formatted_df.to_sql(name=self.table_name, con=cnx, index=False, if_exists='replace')
 
     def __str__(self):
         return f"TableInfo(table_name={self.table_name}, script={self.script}, original_sample={self.original_sample}, formatted_sample={self.formatted_sample})"
 
-    def format_df_and_update_formatted_sample(self, original_df):
-        # self.formatted_sample = original_df.head(constants.PREVIEW_CSV_ROWS)
-        # return original_df
-        path = self._get_tmp_file_path()
-        original_df.to_csv(path, mode="w+")
+    def _format_df(self, path, df):
+        """
+        Can only call this function after init other variables, eg table_name, scripts.
+        """
+        # return df
+        df.to_csv(path, mode="w+")
         try:
             exec(self.script)
         except Exception as e:
@@ -61,11 +83,8 @@ class TableInfo:
             return None
         else:
             formatted_df = pd.read_csv(path)
-            self.formatted_sample = formatted_df.head(constants.PREVIEW_CSV_ROWS)
             return formatted_df
 
-    def _get_tmp_file_path(self):
-        return f"/tmp/{self.table_name}"
 
 def format_table_info_dict(dict):
     return "\n".join([SINGLE_TABLE_SAMPLE_TEMPLATAE.format(name=item.table_name, sample_data=item.formatted_sample) for item in
