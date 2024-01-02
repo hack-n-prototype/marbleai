@@ -1,6 +1,6 @@
 from modules import utils
 import openai
-from modules.constants import PREVIEW_CSV_ROWS, MODEL
+from modules.constants import PREVIEW_CSV_ROWS, MODEL, API_CSV_ROWS
 import pandas as pd
 
 from modules.logger import get_logger
@@ -26,7 +26,7 @@ table name: {name}
 """
 
 def _get_script_to_cleanup_csv(path, sample):
-    prompt = CSV_FORMAT_PROMPT_TEMPLATE.format(path=path, sample=sample)
+    prompt = CSV_FORMAT_PROMPT_TEMPLATE.format(path=path, sample=sample.head(API_CSV_ROWS))
     utils.log_num_tokens_from_string(CSV_FORMAT_SYSTEM_PROMPT + prompt)
     response = openai.ChatCompletion.create(
         model=MODEL,
@@ -45,7 +45,7 @@ class TableInfo:
     1. in __init__: uncomment "self.script = ''", and comment out "self.script = _get_script...."
     2. in _format_df: uncomment "return df"
     """
-    def __init__(self, file_name, df, cnx):
+    def __init__(self, file_name, df, cnx_main, cnx_sample):
         """
         1. Init table_name, script, original_sample
         2. Format df with script, and update formatted df
@@ -65,7 +65,8 @@ class TableInfo:
         self.formatted_sample = formatted_df.head(PREVIEW_CSV_ROWS)
 
         # Save clean csv to DB
-        formatted_df.to_sql(name=self.table_name, con=cnx, index=False, if_exists='replace')
+        formatted_df.to_sql(name=self.table_name, con=cnx_main, index=False, if_exists='replace')
+        self.formatted_sample.to_sql(name=self.table_name, con=cnx_sample, index=False, if_exists='replace')
 
     def __str__(self):
         return f"TableInfo(table_name={self.table_name}, script={self.script}, original_sample={self.original_sample}, formatted_sample={self.formatted_sample})"
@@ -86,6 +87,9 @@ class TableInfo:
             return formatted_df
 
 
-def format_table_info_dict(dict):
-    return "\n".join([SINGLE_TABLE_SAMPLE_TEMPLATAE.format(name=item.table_name, sample_data=item.formatted_sample) for item in
-               dict.values()])
+def generate_table_sample_for_system_prompt(dict):
+    arr = []
+    for item in dict.values():
+        arr.append(SINGLE_TABLE_SAMPLE_TEMPLATAE.format(name=item.table_name,
+                                                        sample_data=item.formatted_sample.head(API_CSV_ROWS)))
+    return "\n".join(arr)

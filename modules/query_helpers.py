@@ -12,6 +12,17 @@ from modules import utils
 from modules.logger import get_logger
 logger = get_logger(__name__)
 
+# TODO: make them enums
+
+QUERY_LABEL_SQL = "sql"
+QUERY_LABEL_APPLY_SQL = "apply_sql"
+QUERY_LABEL_QUERY = "query"
+
+RESULT_LABEL_SQL = "sql"
+RESULT_LABEL_ASSISTANT = "assistant"
+RESULT_LABEL_ACTIONS = "actions"
+RESULT_LABEL_APPLY_SQL = "apply_sql"
+
 def _get_chat_history_for_api():
     history = []
     for item in st.session_state.messages:
@@ -40,10 +51,13 @@ def query_openai(use_stream=False):
     return response
 
 def handle_query(label):
-    if label == "sql":
+    if label == QUERY_LABEL_SQL:
+        ui_helpers.append_non_user_message("info", "Generating SQL queries. This may take approximately 10s.").show_on_screen()
         res = query_openai(False)
-        return [("sql", utils.extract_code_from_string(res))]
-    elif label == "query":
+        return [(RESULT_LABEL_SQL, utils.extract_code_from_string(res))]
+    elif label == QUERY_LABEL_APPLY_SQL:
+        return [(RESULT_LABEL_APPLY_SQL,)]
+    elif label == QUERY_LABEL_QUERY:
         res = query_openai(True)
         buttons = button_helpers.determine_buttons(res)
-        return [("assistant", res), ("actions", buttons)]
+        return [(RESULT_LABEL_ASSISTANT, res), (RESULT_LABEL_ACTIONS, buttons)]

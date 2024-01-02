@@ -1,5 +1,6 @@
 MODEL = "gpt-4-1106-preview"
-PREVIEW_CSV_ROWS = 2
+PREVIEW_CSV_ROWS = 5
+API_CSV_ROWS = 2
 
 QUERY_PROMPT_TEMPLATE = """
 User ask: {query}

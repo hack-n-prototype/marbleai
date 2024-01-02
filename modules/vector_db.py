@@ -16,6 +16,8 @@ class Vectordb:
 
     def search(self, query, k=BUTTON_RESULTS_SIZE):
         retrieved_docs = self.db.similarity_search_with_score(query, k)
+        print("#####")
+        print(retrieved_docs)
         return retrieved_docs
     
     def save(self, docs):

@@ -1,9 +1,16 @@
 import streamlit as st
 from modules.constants import QUERY_PROMPT_TEMPLATE
-from modules.button_helpers import get_button_label, BUTTON_TEXT_TO_PROMPT
+from modules.button_helpers import get_query_label_for_button, BUTTON_TEXT_TO_PROMPT
 
 from modules.logger import get_logger
 logger = get_logger(__name__)
+
+# TODO: make them enums
+MESSAGE_ROLE_USER = "user"
+MESSAGE_ROLE_SYSTEM = "system"
+MESSAGE_ROLE_ASSISTANT = "assistant"
+MESSAGE_ROLE_ACTIONS = "actions"
+MESSAGE_ROLE_INFO = "info"
 
 class MessageItem:
     def __init__(self, role, content, api_content):
@@ -12,24 +19,28 @@ class MessageItem:
         self.api_content = api_content
 
     def get_openai_message_obj(self):
-        if self.role == "system" or self.role == "user" or self.role == "assistant":
+        if (self.role == MESSAGE_ROLE_SYSTEM or self.role == MESSAGE_ROLE_USER or self.role == MESSAGE_ROLE_ASSISTANT) and self.api_content:
             return {"role": self.role, "content": self.api_content }
         else:
             return None
 
     def show_on_screen(self):
-        if self.role == "system":
+        if self.role == MESSAGE_ROLE_SYSTEM:
             return
-        elif self.role == "actions":
+        elif self.role == MESSAGE_ROLE_ACTIONS:
             for button in self.content:
                 if st.button(button):
                     logger.info(f"button '{button}' clicked.")
-                    st.session_state.pending_query_label = get_button_label(button)
+                    st.session_state.pending_query_label = get_query_label_for_button(button)
                     append_user_message("action", button)
-        else:
+        elif self.role == MESSAGE_ROLE_USER or self.role == MESSAGE_ROLE_ASSISTANT:
             with st.chat_message(self.role):
                 st.markdown(self.content)
-
+        elif self.role == MESSAGE_ROLE_INFO:
+            with st.chat_message(self.role):
+                st.markdown(self.content)
+        else:
+            logger.error(f"Unexpected message role: {self.role}")
 
 def _is_last_message_actions(messages):
     return len(messages) > 0 and messages[-1].role == "actions"

@@ -3,7 +3,10 @@ import streamlit as st
 from modules import utils
 from modules import file_helpers
 from modules import query_helpers
+from modules.query_helpers import QUERY_LABEL_QUERY, RESULT_LABEL_SQL, RESULT_LABEL_ASSISTANT, RESULT_LABEL_ACTIONS, RESULT_LABEL_APPLY_SQL
 from modules import vector_db
+from modules.constants import PREVIEW_CSV_ROWS
+from modules import button_helpers
 from modules.ui_helpers import  append_user_message, append_non_user_message
 import openai
 import sqlite3
@@ -19,10 +22,11 @@ def setup_session():
     st.session_state.setdefault("table_info", {})
     st.session_state.setdefault("messages", [])
     st.session_state.setdefault("pending_query_label", None)
+    st.session_state.setdefault("sql", None)
 
     st.set_page_config(layout="wide", page_icon="💬", page_title="Marble | Chat-Bot 🤖")
     st.markdown(
-        "<h1 style='text-align: center;'> Ask Marble about your CSV files ! 😁</h1>",
+        "<h1 style='text-align: center;'> Ask Marble about your CSV files! </h1>",
         unsafe_allow_html=True,
     )
     st.sidebar.markdown("Please ensure file names are updated to reflect any changes in content for accurate deduplication.")
@@ -34,8 +38,9 @@ def setup_session():
 
 
 setup_session()
-cnx = sqlite3.connect(f"/tmp/{st.session_state.id}.db")
-file_helpers.handle_upload(cnx)
+cnx_main = sqlite3.connect(f"/tmp/{st.session_state.id}.db")
+cnx_sample = sqlite3.connect(f"/tmp/{st.session_state.id}_sample.db")
+file_helpers.handle_upload(cnx_main, cnx_sample)
 
 # Add buttons to vector db
 if "vector_db" not in st.session_state:
@@ -46,7 +51,7 @@ if "vector_db" not in st.session_state:
 if st.session_state.table_info:
     # Show table preview
     for name, item in st.session_state.table_info.items():
-        with st.expander(f"{name} sample"):
+        with st.expander(f"{name} -- first {PREVIEW_CSV_ROWS} rows"):
             st.dataframe(item.original_sample)
     # Show chat
     for message in st.session_state.messages:
@@ -54,7 +59,7 @@ if st.session_state.table_info:
 
     # Show user input box and its handler
     if prompt := st.chat_input("e-g : How many rows ? "):
-        st.session_state.pending_query_label = "query"
+        st.session_state.pending_query_label = QUERY_LABEL_QUERY
         append_user_message("query", prompt).show_on_screen()
         # User input is handled separately, because rerun() may interrupt query processing if buttons exist before user input box
 
@@ -63,13 +68,26 @@ if st.session_state.table_info:
         arr = query_helpers.handle_query(st.session_state.pending_query_label)
         st.session_state.pending_query_label = None
         for i in arr:
-            if i[0] == "sql":
-                sql_res = utils.format_sqlite3_cursor(cnx.cursor().execute(i[1]).fetchall())
-                append_non_user_message("assistant", sql_res).show_on_screen()
-            elif i[0] == "actions":
+            if i[0] == RESULT_LABEL_SQL:
+                sql_query = i[1]
+                st.session_state.sql = sql_query
+                append_non_user_message("info", f"Applying `{sql_query}` on sample data (first {PREVIEW_CSV_ROWS} rows)...").show_on_screen()
+                sample_res = utils.format_sqlite3_cursor(cnx_sample.cursor().execute(sql_query).fetchall())
+                append_non_user_message("info", f"Result is: {sample_res}").show_on_screen()
+                # TODO
+                ### save sql_query to button,
+                ### and change pending_query_label to include query context.
+                append_non_user_message("actions", [button_helpers.BUTTON_TEXT_APPLY_SQL_TO_MAIN_DB]).show_on_screen()
+            elif i[0] == RESULT_LABEL_APPLY_SQL:
+                append_non_user_message("info", "Processing...").show_on_screen()
+                sql_res = utils.format_sqlite3_cursor(cnx_main.cursor().execute(st.session_state.sql).fetchall())
+                append_non_user_message("info", f"Final result is: {sql_res}").show_on_screen()
+                # TODO: delete this variable
+                st.session_state.sql = None
+            elif i[0] == RESULT_LABEL_ACTIONS:
                 append_non_user_message(i[0], i[1]).show_on_screen()
-            elif i[0] == "assistant":
+            elif i[0] == RESULT_LABEL_ASSISTANT:
                 # No need to show_on_screen bc the response is streaming'ed
                 append_non_user_message(i[0], i[1])
             else:
-                logger.error(f"Exception: unexpected type {i[0]}")
+                logger.error(f"Exception: unexpected result label {i[0]}")
