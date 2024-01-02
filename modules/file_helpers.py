@@ -4,7 +4,7 @@ Everything related to handling files (uploads etc)
 import streamlit as st
 import pandas as pd
 from modules.table_info import TableInfo, generate_table_sample_for_system_prompt
-from modules.ui_helpers import append_non_user_message
+from modules.message_items.utils import append_non_user_message
 
 from modules.logger import get_logger
 logger = get_logger(__name__)
@@ -53,17 +53,19 @@ def _process_uploaded_paths(cnx_main, cnx_sample, uploaded_files):
 
         ### TODO: add info about unique & null item
         table_samples = generate_table_sample_for_system_prompt(st.session_state.table_info)
-        append_non_user_message("system", PROMPT_BASE_TEMPLATE.format(length=len(uploaded_files), table_samples=table_samples))
+        prompt_base = PROMPT_BASE_TEMPLATE.format(length=len(uploaded_files), table_samples=table_samples)
+        append_non_user_message("system", prompt_base)
+        logger.debug(f"prompt base: {prompt_base}")
 
 def handle_upload(cnx_main, cnx_sample):
     """
     Handles and display uploaded_file, and save them to db.
     """
-    uploaded_files = st.sidebar.file_uploader("upload", accept_multiple_files=True, type="csv",
+    uploaded_files = st.sidebar.file_uploader("upload", key=st.session_state.id, accept_multiple_files=True, type="csv",
                                               label_visibility="collapsed")
     num_uploaded_files = len(uploaded_files)
     if num_uploaded_files > 0:
-        logger.debug(f"received {num_uploaded_files} uploaded files.")
+        logger.info(f"received {num_uploaded_files} uploaded files.")
         with st.spinner("Processing uploaded files. Each new file takes approximately 30s."):
             _process_uploaded_paths(cnx_main, cnx_sample, uploaded_files)
     else:

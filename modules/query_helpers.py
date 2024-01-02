@@ -3,25 +3,27 @@ Things related to asking openai and processing user queries
 """
 
 import openai
-from modules import button_helpers
 from modules import constants
 import streamlit as st
-from modules import ui_helpers
+from modules.message_items.utils import append_non_user_message
 from modules import utils
+from modules.message_items.message_item_button import determine_buttons
+from modules.constants import PendingQuery, HandleQueryOption
 
 from modules.logger import get_logger
 logger = get_logger(__name__)
 
-# TODO: make them enums
-
-QUERY_LABEL_SQL = "sql"
-QUERY_LABEL_APPLY_SQL = "apply_sql"
-QUERY_LABEL_QUERY = "query"
-
-RESULT_LABEL_SQL = "sql"
-RESULT_LABEL_ASSISTANT = "assistant"
-RESULT_LABEL_ACTIONS = "actions"
-RESULT_LABEL_APPLY_SQL = "apply_sql"
+def _update_chat_stream(result):
+    message_placeholder = st.empty()
+    full_response = ""
+    for response in result:
+        if response["choices"][0].delta:
+            full_response += (response["choices"][0].delta.content or "")
+        else:
+            full_response += ""
+        message_placeholder.markdown(full_response + "▌")
+    message_placeholder.markdown(full_response)
+    return full_response
 
 def _get_chat_history_for_api():
     history = []
@@ -44,20 +46,23 @@ def query_openai(use_stream=False):
                 stream=use_stream)
     if use_stream:
         with st.chat_message("assistant"):
-            response = ui_helpers.update_chat_stream(result)
+            response = _update_chat_stream(result)
     else:
         response = result["choices"][0]["message"]["content"]
     utils.log_num_tokens_from_string(response, label="response")
     return response
 
-def handle_query(label):
-    if label == QUERY_LABEL_SQL:
-        ui_helpers.append_non_user_message("info", "Generating SQL queries. This may take approximately 10s.").show_on_screen()
+def handle_query(query):
+    if query[0] == PendingQuery.GENERATE_SQL:
+        append_non_user_message("info", "Generating SQL queries. This may take approximately 10s.").show_on_screen()
         res = query_openai(False)
-        return [(RESULT_LABEL_SQL, utils.extract_code_from_string(res))]
-    elif label == QUERY_LABEL_APPLY_SQL:
-        return [(RESULT_LABEL_APPLY_SQL,)]
-    elif label == QUERY_LABEL_QUERY:
+        return [(HandleQueryOption.RUN_SQL_ON_SAMPLE, utils.extract_code_from_string(res))]
+    elif query[0] == PendingQuery.CONFIRM_APPLY_SQL:
+        return [(HandleQueryOption.RUN_SQL_ON_MAIN, query[1])]
+    elif query[0] == PendingQuery.QUERY:
         res = query_openai(True)
-        buttons = button_helpers.determine_buttons(res)
-        return [(RESULT_LABEL_ASSISTANT, res), (RESULT_LABEL_ACTIONS, buttons)]
+        arr = [(HandleQueryOption.SHOW_ASSISTANT_MSG, res)]
+        buttons = determine_buttons(res)
+        for button in buttons:
+            arr.append((HandleQueryOption.SHOW_BUTTON, button))
+        return arr

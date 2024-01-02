@@ -44,10 +44,10 @@ def log_num_tokens_from_string(content, label="query"):
 
     }
     length = len(encoding.encode(str(content)))
-    logger.debug("token length: " + str(length))
+    logger.debug(f"[{label}] token length: " + str(length))
     entry = f"{constants.MODEL}-{label}"
     if entry in PRICING:
-        logger.debug("spend: $" + str(PRICING[entry] * length/1000.0))
+        logger.debug(f"[{label}] spend: $" + str(PRICING[entry] * length/1000.0))
     else:
         logger.debug(f"{entry} doesn't exist")
 
