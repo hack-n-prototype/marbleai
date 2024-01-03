@@ -9,3 +9,43 @@ def ask_for_user_email():
         st.stop()
     else:
         st.rerun()
+
+
+############
+# reset
+############
+ # if st.sidebar.button("Reset Conversation"):
+ #        st.session_state.table_info = {}
+ #        st.session_state.messages = []
+ #        st.session_state.pending_query = None
+ #        st.session_state.id = utils.generate_random_string(length=10)
+ #        st.rerun()
+
+
+#####################
+# File dedup
+#####################
+def dedup_files(uploaded_name_to_path):
+    """
+    Assuming file content is immutable (meaning if a file content changes, its name will change),
+    this function refreshes table_info:
+        1. if a file is deleted, remove its entry from table_info
+        2. add new files
+    @return: added
+    """
+    to_del = []
+    for name, item in st.session_state.table_info.items():
+        if name not in uploaded_name_to_path:
+            to_del.append(name)
+    logger.debug("processing uploaded file, deleted files: " + str(to_del))
+    for name in to_del:
+        del st.session_state.table_info[name]
+
+    added = []
+    for name in uploaded_name_to_path:
+        if name not in st.session_state.table_info:
+            added.append(name)
+    logger.debug(f"processing uploaded file, new files: {added}")
+
+    return added
+

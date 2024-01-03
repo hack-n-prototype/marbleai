@@ -14,48 +14,18 @@ I have {length} tables in database.
 {table_samples}
 """
 
-def dedup_files(uploaded_name_to_path):
-    """
-    Assuming file content is immutable (meaning if a file content changes, its name will change),
-    this function refreshes table_info:
-        1. if a file is deleted, remove its entry from table_info
-        2. add new files
-    @return: added
-    """
-    to_del = []
-    for name, item in st.session_state.table_info.items():
-        if name not in uploaded_name_to_path:
-            to_del.append(name)
-    logger.debug("processing uploaded file, deleted files: " + str(to_del))
-    for name in to_del:
-        del st.session_state.table_info[name]
-
-    added = []
-    for name in uploaded_name_to_path:
-        if name not in st.session_state.table_info:
-            added.append(name)
-    logger.debug(f"processing uploaded file, new files: {added}")
-
-    return added
-
-
 def _process_uploaded_paths(cnx_main, cnx_sample, uploaded_files):
-    uploaded_name_to_path = {}
     for path in uploaded_files:
-        uploaded_name_to_path[path.name] = path
+        filename = path.name
+        df = pd.read_csv(path)
+        st.session_state.table_info[filename] = TableInfo(filename, df, cnx_main, cnx_sample)
 
-    added = dedup_files(uploaded_name_to_path)
+    ### TODO: add info about unique & null item
+    table_samples = generate_table_sample_for_system_prompt(st.session_state.table_info)
+    prompt_base = PROMPT_BASE_TEMPLATE.format(length=len(uploaded_files), table_samples=table_samples)
+    append_non_user_message("system", prompt_base)
+    logger.debug(f"prompt base: {prompt_base}")
 
-    if added:
-        for name in added:
-            df = pd.read_csv(uploaded_name_to_path[name])
-            st.session_state.table_info[name] = TableInfo(name, df, cnx_main, cnx_sample)
-
-        ### TODO: add info about unique & null item
-        table_samples = generate_table_sample_for_system_prompt(st.session_state.table_info)
-        prompt_base = PROMPT_BASE_TEMPLATE.format(length=len(uploaded_files), table_samples=table_samples)
-        append_non_user_message("system", prompt_base)
-        logger.debug(f"prompt base: {prompt_base}")
 
 def handle_upload(cnx_main, cnx_sample):
     """
@@ -67,13 +37,10 @@ def handle_upload(cnx_main, cnx_sample):
             uploaded_files = st.file_uploader("upload", key=st.session_state.id, accept_multiple_files=True, type="csv",
                                               label_visibility="collapsed")
             uploaded = st.form_submit_button("Upload")
-            if uploaded:
-                upload_form.empty()
 
-        num_uploaded_files = len(uploaded_files)
-        if num_uploaded_files > 0:
-            logger.info(f"received {num_uploaded_files} uploaded files.")
+        if uploaded and len(uploaded_files) > 0:
+            upload_form.empty()
+            logger.info(f"received {len(uploaded_files)} uploaded files.")
             with st.spinner("Processing uploaded files. Each new file takes approximately 30s."):
                 _process_uploaded_paths(cnx_main, cnx_sample, uploaded_files)
-        else:
-            st.session_state["reset_chat"] = True
+

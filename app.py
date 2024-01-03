@@ -24,12 +24,6 @@ def setup_session():
         "<h1 style='text-align: center;'> Ask Marble about your CSV files! </h1>",
         unsafe_allow_html=True,
     )
-    # if st.sidebar.button("Reset Conversation"):
-    #     st.session_state.table_info = {}
-    #     st.session_state.messages = []
-    #     st.session_state.pending_query = None
-    #     st.session_state.id = utils.generate_random_string(length=10)
-    #     st.rerun()
 
     # Init openai key
     if not os.getenv('OPENAI_API_KEY'):
@@ -42,7 +36,7 @@ def handle_generate_sql():
         content = "Generating SQL queries. This may take approximately 10s."
         placeholder.markdown(content + "▌")
         sql = utils.extract_code_from_string(query_helpers.query_openai(False))
-        content += f"\n\nApplying `{sql}` on sample data (first {PREVIEW_CSV_ROWS} rows)..."
+        content = f"Applying `{sql}` on sample data (first {PREVIEW_CSV_ROWS} rows)..."
         placeholder.markdown(content + "▌")
         sql_res = utils.format_sqlite3_cursor(cnx_sample.cursor().execute(sql).fetchall())
         content += f"\n\nResult is: {sql_res}"
@@ -56,7 +50,7 @@ def run_sql_on_main(sql):
         content = "Processing..."
         placeholder.markdown(content + "▌")
         sql_res = utils.format_sqlite3_cursor(cnx_main.cursor().execute(sql).fetchall())
-        content += f"\n\nFinal result is: {sql_res}"
+        content = f"Final result is: {sql_res}"
         placeholder.markdown(content)
         append_non_user_message("info", content)
 

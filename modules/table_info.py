@@ -6,6 +6,8 @@ import pandas as pd
 from modules.logger import get_logger
 logger = get_logger(__name__)
 
+pd.set_option('display.max_columns', None)
+
 CSV_FORMAT_SYSTEM_PROMPT = "You help users format CSV."
 CSV_FORMAT_PROMPT_TEMPLATE = """
 I need to cleanup one CSV file so that it can be saved to database. For example:
