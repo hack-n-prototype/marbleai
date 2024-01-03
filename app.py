@@ -24,14 +24,12 @@ def setup_session():
         "<h1 style='text-align: center;'> Ask Marble about your CSV files! </h1>",
         unsafe_allow_html=True,
     )
-    if st.sidebar.button("Reset Conversation"):
-        st.session_state.table_info = {}
-        st.session_state.messages = []
-        st.session_state.pending_query = None
-        st.session_state.id = utils.generate_random_string(length=10)
-        st.rerun()
-
-    st.sidebar.markdown("Please ensure file names are updated to reflect any changes in content for accurate deduplication.")
+    # if st.sidebar.button("Reset Conversation"):
+    #     st.session_state.table_info = {}
+    #     st.session_state.messages = []
+    #     st.session_state.pending_query = None
+    #     st.session_state.id = utils.generate_random_string(length=10)
+    #     st.rerun()
 
     # Init openai key
     if not os.getenv('OPENAI_API_KEY'):
