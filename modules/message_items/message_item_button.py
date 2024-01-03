@@ -8,7 +8,7 @@ logger = get_logger(__name__)
 
 BUTTON_TEXT_GENERATE_SQL = "Looks good! Help me generate SQL queries!"
 GENERATE_SQL_PROMPT = """
-Return SQL queries for user query. SQL only, no explanation. 
+Return SQLite queries for user query. SQLite only, no explanation. 
 """
 
 BUTTON_TEXT_CONFIRM_APPLY_SQL = "Looks good! Apply SQL to my data set!"
