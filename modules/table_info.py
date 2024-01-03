@@ -57,8 +57,8 @@ class TableInfo:
 
         # Ask openai for cleanup script. The script uses tmp_file_path
         tmp_file_path = f"/tmp/{self.table_name}"
-        self.script = ""
-        # self.script = _get_script_to_cleanup_csv(tmp_file_path, self.original_sample)
+        # self.script = ""
+        self.script = _get_script_to_cleanup_csv(tmp_file_path, self.original_sample)
 
         # Execute cleanup script against original df
         formatted_df = self._format_df(tmp_file_path, df)
@@ -75,7 +75,7 @@ class TableInfo:
         """
         Can only call this function after init other variables, eg table_name, scripts.
         """
-        return df
+        # return df
         df.to_csv(path, mode="w+")
         try:
             exec(self.script)

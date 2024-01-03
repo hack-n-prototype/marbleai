@@ -3,9 +3,9 @@ import streamlit as st
 from modules import utils
 from modules import file_helpers
 from modules import query_helpers
-from modules.constants import PREVIEW_CSV_ROWS, PendingQuery, HandleQueryOption
+from modules.constants import PREVIEW_CSV_ROWS, PendingQuery
 from modules.message_items.utils import  append_non_user_message
-from modules.message_items.message_item_button import BUTTON_TEXT_CONFIRM_APPLY_SQL
+from modules.message_items.message_item_button import BUTTON_TEXT_CONFIRM_APPLY_SQL, BUTTON_TEXT_GENERATE_SQL
 from modules.message_items.message_item_user import append_user_item
 import openai
 import sqlite3
@@ -38,34 +38,35 @@ def setup_session():
         os.environ["OPENAI_API_KEY"] = st.secrets["openai_secret_key"]
     openai.api_key = os.getenv('OPENAI_API_KEY')
 
-
-def ask_for_user_email():
-    st.session_state.setdefault("user_email", None)
-    if st.session_state.user_email:
-        return
-
-    st.session_state.user_email = st.text_input("Your email or name: ")
-    if not st.session_state.user_email:
-        st.stop()
-    else:
-        st.rerun()
-
-def run_sql_on_sample(sql):
-    append_non_user_message("info", f"Applying `{sql}` on sample data (first {PREVIEW_CSV_ROWS} rows)...").show_on_screen()
-    sample_res = utils.format_sqlite3_cursor(cnx_sample.cursor().execute(sql).fetchall())
-    append_non_user_message("info", f"Result is: {sample_res}").show_on_screen()
-    append_non_user_message("button", BUTTON_TEXT_CONFIRM_APPLY_SQL, sql).show_on_screen()
+def handle_generate_sql():
+    with st.chat_message("info"):
+        placeholder = st.empty()
+        content = "Generating SQL queries. This may take approximately 10s."
+        placeholder.markdown(content + "▌")
+        sql = utils.extract_code_from_string(query_helpers.query_openai(False))
+        content += f"\n\nApplying `{sql}` on sample data (first {PREVIEW_CSV_ROWS} rows)..."
+        placeholder.markdown(content + "▌")
+        sql_res = utils.format_sqlite3_cursor(cnx_sample.cursor().execute(sql).fetchall())
+        content += f"\n\nResult is: {sql_res}"
+        placeholder.markdown(content)
+        append_non_user_message("info", content)
+        append_non_user_message("button", BUTTON_TEXT_CONFIRM_APPLY_SQL, sql).show_on_screen()
 
 def run_sql_on_main(sql):
-    append_non_user_message("info", "Processing...").show_on_screen()
-    sql_res = utils.format_sqlite3_cursor(cnx_main.cursor().execute(sql).fetchall())
-    append_non_user_message("info", f"Final result is: {sql_res}").show_on_screen()
+    with st.chat_message("info"):
+        placeholder = st.empty()
+        content = "Processing..."
+        placeholder.markdown(content + "▌")
+        sql_res = utils.format_sqlite3_cursor(cnx_main.cursor().execute(sql).fetchall())
+        content += f"\n\nFinal result is: {sql_res}"
+        placeholder.markdown(content)
+        append_non_user_message("info", content)
+
 
 ##########################
 # main
 ##########################
 st.set_page_config(layout="wide", page_icon="💬", page_title="Marble | Chat-Bot 🤖")
-# ask_for_user_email()
 setup_session()
 cnx_main = sqlite3.connect(f"/tmp/{st.session_state.id}.db")
 cnx_sample = sqlite3.connect(f"/tmp/{st.session_state.id}_sample.db")
@@ -89,18 +90,15 @@ if st.session_state.table_info:
         append_user_item(prompt).show_on_screen()
 
     if st.session_state.pending_query:
-        logger.debug(f"handling query: {st.session_state.pending_query}")
-        arr = query_helpers.handle_query(st.session_state.pending_query)
+        pending_query = st.session_state.pending_query
+        logger.debug(f"handling query: {pending_query}")
+        if pending_query[0] == PendingQuery.GENERATE_SQL:
+            handle_generate_sql()
+        elif pending_query[0] == PendingQuery.CONFIRM_APPLY_SQL:
+            run_sql_on_main(pending_query[1])
+        elif pending_query[0] == PendingQuery.QUERY:
+            res = query_helpers.query_openai(True)
+            append_non_user_message("assistant", res)
+            append_non_user_message("button", BUTTON_TEXT_GENERATE_SQL).show_on_screen()
         st.session_state.pending_query = None
-        for i in arr:
-            if i[0] == HandleQueryOption.RUN_SQL_ON_SAMPLE:
-                run_sql_on_sample(i[1])
-            elif i[0] == HandleQueryOption.RUN_SQL_ON_MAIN:
-                run_sql_on_main(i[1])
-            elif i[0] == HandleQueryOption.SHOW_BUTTON:
-                append_non_user_message("button", i[1]).show_on_screen()
-            elif i[0] == HandleQueryOption.SHOW_ASSISTANT_MSG:
-                # No need to show_on_screen bc the response is streaming'ed
-                append_non_user_message("assistant", i[1])
-            else:
-                logger.error(f"Exception: unexpected result label {i[0]}")
+

@@ -7,19 +7,20 @@ from modules.logger import get_logger
 logger = get_logger(__name__)
 
 BUTTON_TEXT_GENERATE_SQL = "Looks good! Help me generate SQL queries!"
-BUTTON_TEXT_JOIN_DETAILS = "Tell me more about join"
-BUTTON_TEXT_CONFIRM_APPLY_SQL = "Looks good! Apply SQL to my data set!"
-
 GENERATE_SQL_PROMPT = """
 Return SQL queries for user query. SQL only, no explanation. 
 """
-JOIN_DETAULS_PROMPT = """
-Explain different types of joins in SQL, clarify which one to use and why. Keep answer short, ideally under 300 char.
-"""
+
+BUTTON_TEXT_CONFIRM_APPLY_SQL = "Looks good! Apply SQL to my data set!"
+
+# TODO: think about join later
+# BUTTON_TEXT_JOIN_DETAILS = "Tell me more about join"
+# JOIN_DETAULS_PROMPT = """
+# Explain different types of joins in SQL, clarify which one to use and why. Keep answer short, ideally under 300 char.
+# """
 
 BUTTON_TEXT_TO_PROMPT = {
     BUTTON_TEXT_GENERATE_SQL: GENERATE_SQL_PROMPT,
-    BUTTON_TEXT_JOIN_DETAILS: JOIN_DETAULS_PROMPT,
     BUTTON_TEXT_CONFIRM_APPLY_SQL: None
 }
 
@@ -43,10 +44,6 @@ class MessageItemButton(MessageItem):
             elif self.content == BUTTON_TEXT_CONFIRM_APPLY_SQL:
                 st.session_state.pending_query = (PendingQuery.CONFIRM_APPLY_SQL, self._api_content)
             else:
-                st.session_state.pending_query = (PendingQuery.QUERY, None)
+                logger.error(f"Unexpected button: {self.content}")
 
             append_user_item(self.content, self._api_content)
-
-
-def determine_buttons(res):
-    return [BUTTON_TEXT_JOIN_DETAILS, BUTTON_TEXT_GENERATE_SQL]
