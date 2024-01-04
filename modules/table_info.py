@@ -58,7 +58,7 @@ class TableInfo:
         self.original_sample = df.head(PREVIEW_CSV_ROWS)
 
         # Ask openai for cleanup script. The script uses tmp_file_path
-        tmp_file_path = f"/tmp/{self.table_name}"
+        tmp_file_path = f"/tmp/{self.table_name}.csv"
         # self.script = ""
         self.script = _get_script_to_cleanup_csv(tmp_file_path, self.original_sample)
 

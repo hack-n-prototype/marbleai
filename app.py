@@ -15,6 +15,8 @@ from modules.logger import get_logger
 logger = get_logger(__name__)
 
 def setup_session():
+    st.set_page_config(layout="wide", page_icon="💬", page_title="Marble | Chat-Bot 🤖")
+
     if "id" not in st.session_state:
         st.session_state.id = utils.generate_random_string(length=10)
     st.session_state.setdefault("table_info", {})
@@ -52,7 +54,6 @@ def run_sql_on_main(sql):
 ##########################
 # main
 ##########################
-st.set_page_config(layout="wide", page_icon="💬", page_title="Marble | Chat-Bot 🤖")
 setup_session()
 cnx_main = sqlite3.connect(f"/tmp/{st.session_state.id}.db")
 cnx_sample = sqlite3.connect(f"/tmp/{st.session_state.id}_sample.db")
@@ -69,14 +70,14 @@ if st.session_state.table_info:
 
     # Show user input box and its handler
     if prompt := st.chat_input("e-g : How many rows ? "):
-        logger.info(f"User input: {prompt}")
+        logger.info(f"user_input: {prompt}")
         st.session_state.pending_query = (PendingQuery.QUERY, None)
-        # Must append_user_message here because rerun() may be triggered
-        # Query is handled separately, because rerun() may interrupt processing
+        # Query is handled separately, because rerun() from append_user_item may interrupt processing
         append_user_item(prompt).show_on_screen()
 
     if st.session_state.pending_query:
         pending_query = st.session_state.pending_query
+        st.session_state.pending_query = None
         logger.debug(f"handling query: {pending_query}")
         if pending_query[0] == PendingQuery.GENERATE_SQL:
             handle_generate_sql()
@@ -86,5 +87,3 @@ if st.session_state.table_info:
             res = query_helpers.query_openai(True)
             append_non_user_message("assistant", res)
             append_non_user_message("button", BUTTON_TEXT_GENERATE_SQL).show_on_screen()
-        st.session_state.pending_query = None
-

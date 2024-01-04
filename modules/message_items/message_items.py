@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
-
+from modules.utils import generate_random_string
 from modules.constants import  PREVIEW_CSV_ROWS
+
 pd.set_option('display.max_columns', None)
 
 from modules.logger import get_logger
@@ -66,12 +67,14 @@ class MessageItemTable(MessageItem):
         st.write(self.title)
         download = self.content.shape[0] > PREVIEW_CSV_ROWS
         if download:
+            file_name = f"result_{st.session_state.id}_{generate_random_string(10)}.csv"
             st.dataframe(self.content.head(PREVIEW_CSV_ROWS))
             st.download_button(
                 label="Download full result as CSV",
                 data=self.content.to_csv().encode('utf-8'),
-                file_name=f'result_{st.session_state.id}.csv',
+                file_name=file_name,
                 mime='text/csv',
+                key=file_name,
             )
         else:
             st.dataframe(self.content)
