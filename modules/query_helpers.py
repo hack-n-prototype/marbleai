@@ -1,11 +1,11 @@
 """
 Things related to asking openai and processing user queries
 """
-
 import openai
 from modules import constants
 import streamlit as st
 from modules import utils
+from modules.constants import PREVIEW_CSV_ROWS
 
 from modules.logger import get_logger
 logger = get_logger(__name__)
@@ -25,15 +25,11 @@ def _update_chat_stream(result):
 def _get_chat_history_for_api():
     history = []
     for item in st.session_state.messages:
-        openai_message = item.get_openai_message_obj()
-        if openai_message:
+        if openai_message:= item.get_openai_message_obj():
             history.append(openai_message)
     return history
 
-def query_openai(use_stream=False):
-    """
-    chat history is updated before calling this function
-    """
+def query_openai(use_stream = False):
     history = _get_chat_history_for_api()
     utils.log_num_tokens_from_string(history)
     result = openai.ChatCompletion.create(
@@ -48,3 +44,11 @@ def query_openai(use_stream=False):
         response = result["choices"][0]["message"]["content"]
     utils.log_num_tokens_from_string(response, label="response")
     return response
+
+def query_sql_w_status():
+    status = ["Generating SQL queries. This may take approximately 10s."]
+    st.write(status[-1])
+    sql = utils.extract_code_from_string(query_openai(False))
+    status.append(f"Applying `{sql}` on sample data (first {PREVIEW_CSV_ROWS} rows)...")
+    st.write(status[-1])
+    return status, sql

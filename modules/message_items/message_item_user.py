@@ -8,12 +8,18 @@ Explain SQL steps to answer user query. Don't provide SQL queries. Data is clean
 """
 
 class MessageItemUser(MessageItem):
-    def __init__(self, content, api_content):
-        super().__init__("user", content, api_content)
+    def __init__(self, content, prompt=None):
+        super().__init__("user", content)
+        # prompt = None -> self.prompt = None
+        # prompt = "" -> generate self.prompt from content
+        # prompt is a string -> keep it
+        self.prompt = QUERY_PROMPT_TEMPLATE.format(query=content) if prompt == "" else prompt
 
+    def _get_api_prompt(self):
+        return self.prompt
     def _send_to_openai(self):
         # Some user messages are derived from button
-        return self._api_content is not None
+        return self.prompt is not None
 
 
 def _remove_tailing_buttons():
@@ -23,12 +29,9 @@ def _remove_tailing_buttons():
         removed = True
     return removed
 
-def append_user_item(content, api_content=None):
-    if api_content is None:
-        api_content = QUERY_PROMPT_TEMPLATE.format(query=content)
-
+def append_user_item(content, prompt=""):
     rerun = _remove_tailing_buttons()
-    item = MessageItemUser(content, api_content)
+    item = MessageItemUser(content, prompt)
     st.session_state.messages.append(item)
 
     if rerun:

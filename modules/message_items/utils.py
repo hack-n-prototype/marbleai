@@ -5,13 +5,13 @@ from modules.message_items.message_item_button import  MessageItemButton
 from modules.logger import get_logger
 logger = get_logger(__name__)
 
-def append_non_user_message(role, content, api_content=None):
-    if role == "button":  # Only button can have custom api_content
-        item = MessageItemButton(content, api_content)
+def append_non_user_message(role, content, extra_content=None):
+    if role == "button":
+        item = MessageItemButton(content, extra_content)
     elif role == "assistant":
         item = MessageItemAssistant(content)
     elif role == "status":
-        item = MessageItemStatus(content)
+        item = MessageItemStatus(content, extra_content)
     elif role == "system":
         item = MessageItemSystem(content)
 

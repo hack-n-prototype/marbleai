@@ -8,16 +8,18 @@ pd.set_option('display.max_columns', None)
 from modules.logger import get_logger
 logger = get_logger(__name__)
 class MessageItem(object):
-    def __init__(self, role, content, api_content):
+    def __init__(self, role, content):
         self.role = role
         self.content = content
-        self._api_content = api_content
 
     def get_openai_message_obj(self):
         if self._send_to_openai():
-            return {"role": self.role, "content": self._api_content }
+            return {"role": self.role, "content": self._get_api_prompt()}
         else:
             return None
+
+    def _get_api_prompt(self):
+        logger.error("No implementation.")
 
     def _send_to_openai(self):
         return True
@@ -28,7 +30,10 @@ class MessageItem(object):
 
 class MessageItemSystem(MessageItem):
     def __init__(self, content):
-        super().__init__("system", content, content)
+        super().__init__("system", content)
+
+    def _get_api_prompt(self):
+        return self.content
 
     def show_on_screen(self):
         # Do not show system prompt on screen
@@ -36,14 +41,20 @@ class MessageItemSystem(MessageItem):
 
 class MessageItemAssistant(MessageItem):
     def __init__(self, content):
-        super().__init__("assistant", content, content)
+        super().__init__("assistant", content)
 
+    def _get_api_prompt(self):
+        return self.content
 
 class MessageItemStatus(MessageItem):
-    def __init__(self, content):
-        super().__init__("status", content, None)
+    def __init__(self, content, prompt):
+        super().__init__("status", content)
+        self.prompt = prompt
     def _send_to_openai(self):
-        return False
+        return self.prompt is not None
+
+    def _get_api_prompt(self):
+        return self.prompt
 
     def show_on_screen(self):
         with st.status(self.content[0]):
@@ -52,29 +63,29 @@ class MessageItemStatus(MessageItem):
 
 class MessageItemTable(MessageItem):
     def __init__(self, title, df):
-        super().__init__("table", df, None)
+        super().__init__("table", str(df.iat[0,0]) if df.shape == (1,1) else df)
         self.title = title
 
     def _send_to_openai(self):
         return False
 
     def show_on_screen(self):
-        if self.content.shape == (1,1): # Single answer -> just a text message
+        if isinstance(self.content, str):
             with st.chat_message("assistant"):
-                st.markdown(f"{self.title}: {self.content.iat[0,0]}")
+                st.markdown(f"{self.title}: {self.content}")
             return
 
         st.write(self.title)
-        download = self.content.shape[0] > PREVIEW_CSV_ROWS
-        if download:
-            file_name = f"result_{st.session_state.id}_{generate_random_string(10)}.csv"
-            st.dataframe(self.content.head(PREVIEW_CSV_ROWS))
-            st.download_button(
-                label="Download full result as CSV",
-                data=self.content.to_csv().encode('utf-8'),
-                file_name=file_name,
-                mime='text/csv',
-                key=file_name,
-            )
-        else:
+        if self.content.shape[0] <= PREVIEW_CSV_ROWS:
             st.dataframe(self.content)
+            return
+
+        file_name = f"result_{st.session_state.id}_{generate_random_string(10)}.csv"
+        st.dataframe(self.content.head(PREVIEW_CSV_ROWS))
+        st.download_button(
+            label="Download full result as CSV",
+            data=self.content.to_csv().encode('utf-8'),
+            file_name=file_name,
+            mime='text/csv',
+            key=file_name,
+        )

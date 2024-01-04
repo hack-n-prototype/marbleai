@@ -37,10 +37,16 @@ table name: {name}
 {sample_data}
 """
 
+#####################
+# To bypass file processing,
+# uncomment first line of _get_script_to_cleanup_csv and _run_script_on_df
+#####################
+
 def _get_temp_filepath_from_filename(file_name):
     return f"/tmp/{utils.convert_to_lowercase(file_name)}.csv"
 
 def _get_script_to_cleanup_csv(file_name, df):
+    # return file_name, ""
     path = _get_temp_filepath_from_filename(file_name)
     prompt = CSV_FORMAT_PROMPT_TEMPLATE.format(path=path, sample=df.head(API_CSV_ROWS))
     utils.log_num_tokens_from_string(CSV_FORMAT_SYSTEM_PROMPT + prompt)
@@ -82,15 +88,14 @@ def _get_csv_cleanup_script(df_map):
 def _process_uploaded_paths(cnx_main, cnx_sample, uploaded_files):
     df_map = {}
     for path in uploaded_files:
-        df_map[path.name] = pd.read_csv(path)
+        df = pd.read_csv(path)
+        df_map[path.name] = df
+        st.session_state.table_preview.append((path.name, df.head(PREVIEW_CSV_ROWS)))
 
     script_arr = _get_csv_cleanup_script(df_map)
 
     prompt_table_samples = []
     for file_name, script in script_arr:
-        # Add file to preview
-        st.session_state.table_preview.append((file_name, df_map[file_name].head(PREVIEW_CSV_ROWS)))
-
         # Execute cleanup script against original df
         formatted_df = _run_script_on_df(file_name, df_map[file_name], script)
 
@@ -117,8 +122,8 @@ def handle_upload(cnx_main, cnx_sample):
             uploaded_files = st.file_uploader("upload", key=st.session_state.id, accept_multiple_files=True, type="csv",
                                               label_visibility="collapsed")
             uploaded = st.form_submit_button("Upload")
-
-        if uploaded and len(uploaded_files) > 0:
+        logger.info(f"table_preview: {bool(st.session_state.table_preview)}; uploaded: {uploaded}; uploaded_files: {len(uploaded_files)}")
+        if not st.session_state.table_preview and uploaded and len(uploaded_files) > 0:
             upload_form.empty()
             logger.info(f"received {len(uploaded_files)} uploaded files.")
             with st.spinner("Processing uploaded files. This takes approximately 30s."):

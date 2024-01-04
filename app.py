@@ -34,20 +34,21 @@ def setup_session():
     openai.api_key = os.getenv('OPENAI_API_KEY')
 
 def handle_generate_sql():
-    content = ["Generating SQL and applying it to sample data...", "Generating SQL queries. This may take approximately 10s."]
-    with st.status(content[0]):
-        st.write(content[1])
-        sql = utils.extract_code_from_string(query_helpers.query_openai(False))
-        content.append(f"Applying `{sql}` on sample data (first {PREVIEW_CSV_ROWS} rows)...")
-        st.write(content[-1])
+    status = ["Generating SQL and applying it to sample data..."]
+    with st.status(status[-1]):
+        sql_status, sql = query_helpers.query_sql_w_status()
+        status.extend(sql_status)
+        logger.info(f"executing on sample: {sql}")
         df = pd.read_sql_query(sql, cnx_sample)
-        content.append("Done!")
-        st.write(content[-1])
-    append_non_user_message("status", content)
+        status.append("Done!")
+        st.write(status[-1])
+
+    append_non_user_message("status", status, sql)
     append_table_item(f"SQL result on sample data (first {PREVIEW_CSV_ROWS} rows of each file)", df).show_on_screen()
     append_non_user_message("button", BUTTON_TEXT_CONFIRM_APPLY_SQL, sql).show_on_screen()
 
 def run_sql_on_main(sql):
+    logger.info(f"executing on main: {sql}")
     df = pd.read_sql_query(sql, cnx_main)
     append_table_item(f"(First {PREVIEW_CSV_ROWS} rows of) SQL result on full data set", df).show_on_screen()
 
@@ -68,7 +69,7 @@ if st.session_state.table_preview:
     for message in st.session_state.messages:
         message.show_on_screen()
 
-    # Show user input box and its handler
+    # Show user input box
     if prompt := st.chat_input("e-g : How many rows ? "):
         logger.info(f"user_input: {prompt}")
         st.session_state.pending_query = (PendingQuery.QUERY, None)
@@ -78,7 +79,6 @@ if st.session_state.table_preview:
     if st.session_state.pending_query:
         pending_query = st.session_state.pending_query
         st.session_state.pending_query = None
-        logger.debug(f"handling query: {pending_query}")
         if pending_query[0] == PendingQuery.GENERATE_SQL:
             handle_generate_sql()
         elif pending_query[0] == PendingQuery.CONFIRM_APPLY_SQL:
