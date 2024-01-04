@@ -1,7 +1,7 @@
 from enum import Enum
 
 MODEL = "gpt-4-1106-preview"
-PREVIEW_CSV_ROWS = 5
+PREVIEW_CSV_ROWS = 3
 API_CSV_ROWS = 2
 
 class PendingQuery(Enum):

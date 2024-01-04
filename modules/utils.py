@@ -50,24 +50,3 @@ def log_num_tokens_from_string(content, label="query"):
         logger.debug(f"[{label}] spend: $" + str(PRICING[entry] * length/1000.0))
     else:
         logger.debug(f"{entry} doesn't exist")
-
-
-def format_sqlite3_cursor(cursor_data):
-    """
-    Formats the sqlite3.Cursor object data to a more human-readable form.
-
-    Args:
-    cursor_data (list of tuples): Data from the sqlite3.Cursor object.
-
-    Returns:
-    str: Formatted string.
-    """
-    formatted_output = []
-    for row in cursor_data:
-        # Convert each tuple to a string and join elements with a comma
-        formatted_row = ", ".join(str(item) for item in row)
-        formatted_output.append(formatted_row)
-
-    # Join all rows with a newline character
-    return "\n".join(formatted_output)
-
