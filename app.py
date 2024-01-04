@@ -19,7 +19,7 @@ def setup_session():
 
     if "id" not in st.session_state:
         st.session_state.id = utils.generate_random_string(length=10)
-    st.session_state.setdefault("table_info", {})
+    st.session_state.setdefault("table_preview", [])
     st.session_state.setdefault("messages", [])
     st.session_state.setdefault("pending_query", None)
 
@@ -59,11 +59,11 @@ cnx_main = sqlite3.connect(f"/tmp/{st.session_state.id}.db")
 cnx_sample = sqlite3.connect(f"/tmp/{st.session_state.id}_sample.db")
 file_helpers.handle_upload(cnx_main, cnx_sample)
 
-if st.session_state.table_info:
+if st.session_state.table_preview:
     # Show table preview
-    for name, item in st.session_state.table_info.items():
+    for name, sample in st.session_state.table_preview:
         with st.expander(f"{name} -- first {PREVIEW_CSV_ROWS} rows"):
-            st.dataframe(item.original_sample)
+            st.dataframe(sample)
     # Show chat
     for message in st.session_state.messages:
         message.show_on_screen()
