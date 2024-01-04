@@ -49,3 +49,9 @@ def dedup_files(uploaded_name_to_path):
 
     return added
 
+def generate_table_sample_for_system_prompt(dict):
+    arr = []
+    for item in dict.values():
+        arr.append(SINGLE_TABLE_SAMPLE_TEMPLATE.format(name=item.table_name,
+                                                       sample_data=item.formatted_sample.head(API_CSV_ROWS)))
+    return "\n".join(arr)
