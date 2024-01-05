@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import streamlit as st
-import logging
 from colorlog import ColoredFormatter
 
 LOGFORMAT = '%(log_color)s%(asctime)s (%(user)s) - [%(filename)s:%(lineno)d] - %(funcName)s - %(levelname)s - %(message)s'
@@ -11,13 +10,11 @@ class CustomFormatter(ColoredFormatter):
         return super(CustomFormatter, self).format(record)
 
 def get_logger(logger_name):
-    formatter = CustomFormatter(LOGFORMAT)
-    stream = logging.StreamHandler()
-    stream.setLevel(logging.DEBUG)
-    stream.setFormatter(formatter)
-
-    logger = logging.getLogger(logger_name)
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(stream)
+    logger = st.logger.get_logger(logger_name)
+    logger.setLevel("DEBUG")
+    # Get the Streamlit log handler
+    log_handler = logger.handlers[0]
+    # Set the formatter for the handler
+    log_handler.setFormatter(CustomFormatter(LOGFORMAT))
 
     return logger

@@ -122,8 +122,7 @@ def handle_upload(cnx_main, cnx_sample):
             uploaded_files = st.file_uploader("upload", key=st.session_state.id, accept_multiple_files=True, type="csv",
                                               label_visibility="collapsed")
             uploaded = st.form_submit_button("Upload")
-        logger.info(f"table_preview: {bool(st.session_state.table_preview)}; uploaded: {uploaded}; uploaded_files: {len(uploaded_files)}")
-        if not st.session_state.table_preview and uploaded and len(uploaded_files) > 0:
+        if uploaded and len(uploaded_files) > 0:
             upload_form.empty()
             logger.info(f"received {len(uploaded_files)} uploaded files.")
             with st.spinner("Processing uploaded files. This takes approximately 30s."):
