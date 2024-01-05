@@ -5,13 +5,12 @@ import time
 from modules.logger import get_logger
 logger = get_logger(__name__)
 
-@st.cache_resource(experimental_allow_widgets=True)
 def _get_cookie_manager():
     return stx.CookieManager()
 
 def ask_for_user_email():
-    # Do this to minimize session_state change
-    if "user_email" not in st.session_state or not _is_valid_email(st.session_state.user_email):
+    if not _is_valid_email(st.session_state.user_email):
+        # Do this to minimize session_state change
         st.session_state.user_email = _ask_for_user_email()
 
 def _ask_for_user_email():

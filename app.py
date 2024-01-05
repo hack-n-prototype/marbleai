@@ -12,15 +12,15 @@ import pandas as pd
 import openai
 import sqlite3
 
-
 from modules.logger import get_logger
 logger = get_logger(__name__)
 
-# st.set_page_config(layout="wide", page_icon="💬", page_title="Marble | Chat-Bot 🤖")
-
 def setup_session():
+    st.set_page_config(layout="wide", page_icon="💬", page_title="Marble | Chat-Bot 🤖")
+
     if "id" not in st.session_state:
         st.session_state.id = utils.generate_random_string(length=10)
+    st.session_state.setdefault("user_email", None)
     st.session_state.setdefault("table_preview", [])
     st.session_state.setdefault("messages", [])
     st.session_state.setdefault("pending_query", None)
@@ -54,8 +54,8 @@ def run_sql_on_main(sql):
 ##########################
 # main
 ##########################
-login.ask_for_user_email()
 setup_session()
+login.ask_for_user_email()
 cnx_main = sqlite3.connect(f"/tmp/{st.session_state.id}.db")
 cnx_sample = sqlite3.connect(f"/tmp/{st.session_state.id}_sample.db")
 file_helpers.handle_upload(cnx_main, cnx_sample)
@@ -72,14 +72,13 @@ if st.session_state.table_preview:
     # Show user input box
     if prompt := st.chat_input("e-g : How many rows ? "):
         logger.info(f"user_input: {prompt}")
-        st.session_state.pending_query = (PendingQuery.QUERY, None)
+        st.session_state.pending_query = (PendingQuery.QUERY, prompt)
         # Query is handled separately, because rerun() from append_user_item may interrupt processing
         append_user_item(prompt).show_on_screen()
 
     if st.session_state.pending_query:
         pending_query = st.session_state.pending_query
         logger.info(f"handling pending_query: {pending_query}")
-        st.session_state.pending_query = None
         if pending_query[0] == PendingQuery.GENERATE_SQL:
             handle_generate_sql()
         elif pending_query[0] == PendingQuery.CONFIRM_APPLY_SQL:
@@ -88,3 +87,4 @@ if st.session_state.table_preview:
             res = query_helpers.query_openai(True)
             append_non_user_message("assistant", res)
             append_non_user_message("button", BUTTON_TEXT_GENERATE_SQL).show_on_screen()
+        st.session_state.pending_query = None # Putting it at the bottom bc this will trigger a rerun

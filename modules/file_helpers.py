@@ -38,14 +38,17 @@ table name: {name}
 """
 
 #####################
-# To bypass file processing,
-# uncomment first line of _get_script_to_cleanup_csv and _run_script_on_df
+# To bypass file processing, uncomment:
+# - first three lines of _get_script_to_cleanup_csv
+# - and, first line of _run_script_on_df
 #####################
 
 def _get_temp_filepath_from_filename(file_name):
     return f"/tmp/{utils.convert_to_lowercase(file_name)}.csv"
 
 def _get_script_to_cleanup_csv(file_name, df):
+    # import time
+    # time.sleep(3)
     # return file_name, ""
     path = _get_temp_filepath_from_filename(file_name)
     prompt = CSV_FORMAT_PROMPT_TEMPLATE.format(path=path, sample=df.head(API_CSV_ROWS))
@@ -86,31 +89,28 @@ def _get_csv_cleanup_script(df_map):
     return [future.result() for future in concurrent.futures.as_completed(futures)]
 
 def _process_uploaded_paths(cnx_main, cnx_sample, uploaded_files):
-    df_map = {}
-    for path in uploaded_files:
-        df = pd.read_csv(path)
-        df_map[path.name] = df
-        st.session_state.table_preview.append((path.name, df.head(PREVIEW_CSV_ROWS)))
-
+    df_map = {path.name: pd.read_csv(path) for path in uploaded_files}
     script_arr = _get_csv_cleanup_script(df_map)
 
     prompt_table_samples = []
+    table_preview = [] # Set session_state will trigger rerun. Putting it at the end of this function.
     for file_name, script in script_arr:
         # Execute cleanup script against original df
         formatted_df = _run_script_on_df(file_name, df_map[file_name], script)
-
         # Save clean csv to DB
         table_name = utils.convert_to_lowercase(file_name)
         formatted_df.to_sql(name=table_name, con=cnx_main, index=False, if_exists='replace')
         formatted_df.head(PREVIEW_CSV_ROWS).to_sql(name=table_name, con=cnx_sample, index=False, if_exists='replace')
-
         # Save clean csv to system prompt
         prompt_table_samples.append(SINGLE_TABLE_SAMPLE_TEMPLATE.format(name=table_name, sample_data=formatted_df.head(API_CSV_ROWS)))
+        # Update table preview
+        table_preview.append((file_name, df_map[file_name].head(PREVIEW_CSV_ROWS)))
 
     ### TODO: add info about unique & null item
     prompt_base = PROMPT_BASE_TEMPLATE.format(length=len(uploaded_files), table_samples="\n".join(prompt_table_samples))
     append_non_user_message("system", prompt_base)
     logger.debug(f"prompt base: {prompt_base}")
+    st.session_state.table_preview = table_preview
 
 def handle_upload(cnx_main, cnx_sample):
     """
@@ -122,8 +122,11 @@ def handle_upload(cnx_main, cnx_sample):
             uploaded_files = st.file_uploader("upload", key=st.session_state.id, accept_multiple_files=True, type="csv",
                                               label_visibility="collapsed")
             uploaded = st.form_submit_button("Upload")
+            if uploaded and len(uploaded_files) > 0:
+                upload_form.empty()
+
         if uploaded and len(uploaded_files) > 0:
-            upload_form.empty()
+            # upload_form.empty()
             logger.info(f"received {len(uploaded_files)} uploaded files.")
             with st.spinner("Processing uploaded files. This takes approximately 30s."):
                 _process_uploaded_paths(cnx_main, cnx_sample, uploaded_files)
