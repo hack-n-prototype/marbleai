@@ -7,16 +7,18 @@ from modules.constants import PREVIEW_CSV_ROWS, PendingQuery
 from modules.message_items.utils import  append_non_user_message, append_table_item
 from modules.message_items.message_item_button import BUTTON_TEXT_CONFIRM_APPLY_SQL, BUTTON_TEXT_GENERATE_SQL
 from modules.message_items.message_item_user import append_user_item
+from modules import login
 import pandas as pd
 import openai
 import sqlite3
 
+
 from modules.logger import get_logger
 logger = get_logger(__name__)
 
-def setup_session():
-    st.set_page_config(layout="wide", page_icon="💬", page_title="Marble | Chat-Bot 🤖")
+# st.set_page_config(layout="wide", page_icon="💬", page_title="Marble | Chat-Bot 🤖")
 
+def setup_session():
     if "id" not in st.session_state:
         st.session_state.id = utils.generate_random_string(length=10)
     st.session_state.setdefault("table_preview", [])
@@ -55,6 +57,7 @@ def run_sql_on_main(sql):
 ##########################
 # main
 ##########################
+login.ask_for_user_email()
 setup_session()
 cnx_main = sqlite3.connect(f"/tmp/{st.session_state.id}.db")
 cnx_sample = sqlite3.connect(f"/tmp/{st.session_state.id}_sample.db")
