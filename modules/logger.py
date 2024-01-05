@@ -6,7 +6,7 @@ LOGFORMAT = '%(log_color)s%(asctime)s (%(user)s) - [%(filename)s:%(lineno)d] - %
 
 class CustomFormatter(ColoredFormatter):
     def format(self, record):
-        record.user = st.session_state.user_email
+        record.user = st.session_state.user_email if "user_email" in st.session_state else None
         return super(CustomFormatter, self).format(record)
 
 def get_logger(logger_name):
