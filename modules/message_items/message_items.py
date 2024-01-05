@@ -13,16 +13,7 @@ class MessageItem(object):
         self.content = content
 
     def get_openai_message_obj(self):
-        if self._send_to_openai():
-            return {"role": self.role, "content": self._get_api_prompt()}
-        else:
-            return None
-
-    def _get_api_prompt(self):
-        logger.error("No implementation.")
-
-    def _send_to_openai(self):
-        return True
+        return {"role": self.role, "content": self.content}
 
     def show_on_screen(self):
         with st.chat_message(self.role):
@@ -32,9 +23,6 @@ class MessageItemSystem(MessageItem):
     def __init__(self, content):
         super().__init__("system", content)
 
-    def _get_api_prompt(self):
-        return self.content
-
     def show_on_screen(self):
         # Do not show system prompt on screen
         return
@@ -43,31 +31,25 @@ class MessageItemAssistant(MessageItem):
     def __init__(self, content):
         super().__init__("assistant", content)
 
-    def _get_api_prompt(self):
-        return self.content
-
 class MessageItemStatus(MessageItem):
     def __init__(self, content, prompt):
         super().__init__("status", content)
         self.prompt = prompt
-    def _send_to_openai(self):
-        return self.prompt is not None
 
-    def _get_api_prompt(self):
-        return self.prompt
+    def get_openai_message_obj(self):
+        return {"role": "assistant", "content": self.prompt} if self.prompt else None
 
     def show_on_screen(self):
         with st.status(self.content[0]):
             st.write("\n\n".join(self.content[1:]))
-
 
 class MessageItemTable(MessageItem):
     def __init__(self, title, df):
         super().__init__("table", str(df.iat[0,0]) if df.shape == (1,1) else df)
         self.title = title
 
-    def _send_to_openai(self):
-        return False
+    def get_openai_message_obj(self):
+        return None
 
     def show_on_screen(self):
         if isinstance(self.content, str):

@@ -15,11 +15,8 @@ class MessageItemUser(MessageItem):
         # prompt is a string -> keep it
         self.prompt = QUERY_PROMPT_TEMPLATE.format(query=content) if prompt == "" else prompt
 
-    def _get_api_prompt(self):
-        return self.prompt
-    def _send_to_openai(self):
-        # Some user messages are derived from button
-        return self.prompt is not None
+    def get_openai_message_obj(self):
+        return None if self.prompt is None else {"role": "user", "content": self.prompt}
 
 
 def _remove_tailing_buttons():

@@ -32,11 +32,8 @@ class MessageItemButton(MessageItem):
         #   otherwise, BUTTON_TEXT_TO_PROMPT[button_text]
         self.prompt = sql if sql else BUTTON_TEXT_TO_PROMPT[content]
 
-    def _send_to_openai(self):
-        return False
-
-    def _get_api_prompt(self):
-        return self.prompt
+    def get_openai_message_obj(self):
+        return None
 
     def show_on_screen(self):
         if st.button(self.content):
