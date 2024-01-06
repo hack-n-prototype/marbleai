@@ -7,5 +7,6 @@ API_CSV_ROWS = 2
 class PendingQuery(Enum):
     GENERATE_SQL = 1
     CONFIRM_APPLY_SQL = 2
-    QUERY = 3
+    QUERY_SQL = 3
+    QUERY_GRAPH = 4
 

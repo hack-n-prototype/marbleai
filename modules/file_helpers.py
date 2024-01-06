@@ -99,6 +99,9 @@ def _process_uploaded_paths(cnx_main, cnx_sample, uploaded_files):
         formatted_df = _run_script_on_df(file_name, df_map[file_name], script)
         # Save clean csv to DB
         table_name = utils.convert_to_lowercase(file_name)
+        ## TODO
+        ## change location
+        st.session_state.df.append(formatted_df)
         formatted_df.to_sql(name=table_name, con=cnx_main, index=False, if_exists='replace')
         formatted_df.head(PREVIEW_CSV_ROWS).to_sql(name=table_name, con=cnx_sample, index=False, if_exists='replace')
         # Save clean csv to system prompt
