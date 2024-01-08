@@ -45,18 +45,19 @@ class MessageItemTable(MessageItem):
                 st.markdown(f"{self.title}: {self.content}")
                 return
 
-            if self.content.shape[0] <= PREVIEW_CSV_ROWS:
-                st.write(self.title)
-                st.dataframe(self.content)
-                return
+            def _show_expander_w_df(title, df):
+                with st.expander(title):
+                    st.dataframe(df)
 
-            st.write(f"{self.title} (First {PREVIEW_CSV_ROWS} rows)")
-            file_name = f"result_{st.session_state.id}_{generate_random_string(10)}.csv"
-            st.dataframe(self.content.head(PREVIEW_CSV_ROWS))
-            st.download_button(
-                label="Download full result as CSV",
-                data=self.content.to_csv().encode('utf-8'),
-                file_name=file_name,
-                mime='text/csv',
-                key=file_name,
-            )
+            if self.content.shape[0] <= PREVIEW_CSV_ROWS:
+                _show_expander_w_df(self.title, self.content)
+            else:
+                _show_expander_w_df(f"{self.title} (First {PREVIEW_CSV_ROWS} rows)", self.content.head(PREVIEW_CSV_ROWS))
+                file_name = f"result_{st.session_state.id}_{generate_random_string(10)}.csv"
+                st.download_button(
+                    label="Download full result as CSV",
+                    data=self.content.to_csv().encode('utf-8'),
+                    file_name=file_name,
+                    mime='text/csv',
+                    key=file_name,
+                )

@@ -80,7 +80,7 @@ if st.session_state.table_preview:
                 for follow_up in follow_ups:
                     append_non_user_message("button", follow_up).show_on_screen()
             except Exception as e:
-                # Swallow error
+                # Swallow error if the sql is not executable. This could happen if there are multiple SQLs in response.
                 logger.error(e)
 
         st.session_state.pending_query = None # Putting it at the bottom bc this will trigger a rerun

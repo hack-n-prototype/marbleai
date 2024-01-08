@@ -1,6 +1,6 @@
 from enum import Enum
 
-PREVIEW_CSV_ROWS = 3
+PREVIEW_CSV_ROWS = 10
 API_CSV_ROWS = 2
 
 class PendingQuery(Enum):
