@@ -1,7 +1,6 @@
 import streamlit as st
-from modules.message_items.message_items import  MessageItemAssistant, MessageItemStatus, MessageItemSystem, MessageItemTable
+from modules.message_items.message_items import  MessageItemAssistant, MessageItemSystem, MessageItemTable
 from modules.message_items.message_item_button import  MessageItemButton
-from modules.message_items.message_item_user import  MessageItemUser
 
 from modules.logger import get_logger
 logger = get_logger(__name__)
@@ -11,10 +10,10 @@ def append_non_user_message(role, content, extra_content=None):
         item = MessageItemButton(content, extra_content)
     elif role == "assistant":
         item = MessageItemAssistant(content)
-    elif role == "status":
-        item = MessageItemStatus(content, extra_content)
     elif role == "system":
         item = MessageItemSystem(content)
+    else:
+        logger.error(f"Unexpected role {role}")
 
     st.session_state.messages.append(item)
     return item

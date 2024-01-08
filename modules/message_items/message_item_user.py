@@ -6,7 +6,7 @@ class MessageItemUser(MessageItem):
         super().__init__("user", content)
         self.send_to_openai = send_to_openai
 
-    def get_openai_message_obj(self):
+    def get_openai_obj(self):
         return {"role": "user", "content": self.content} if self.send_to_openai else None
 
 def _remove_tailing_buttons():
@@ -16,9 +16,9 @@ def _remove_tailing_buttons():
         removed = True
     return removed
 
-def append_user_item(content, send_to_opena=True):
+def append_user_item(content, send_to_openai=True):
     rerun = _remove_tailing_buttons()
-    item = MessageItemUser(content, send_to_opena)
+    item = MessageItemUser(content, send_to_openai)
     st.session_state.messages.append(item)
 
     if rerun:

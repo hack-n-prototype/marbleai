@@ -7,48 +7,14 @@ import pandas as pd
 from modules.message_items.utils import append_non_user_message
 import concurrent.futures
 from modules import utils
-from modules.constants import PREVIEW_CSV_ROWS, API_CSV_ROWS, MODEL
+from modules.constants import PREVIEW_CSV_ROWS, API_CSV_ROWS
+from modules.ai_constants import MODEL, PROMPT_BASE_TEMPLATE, CSV_FORMAT_SYSTEM_PROMPT, CSV_FORMAT_PROMPT_TEMPLATE, SINGLE_TABLE_SAMPLE_TEMPLATE
 import openai
 
 from modules.logger import get_logger
 logger = get_logger(__name__)
 
 pd.set_option('display.max_columns', None)
-
-PROMPT_BASE_TEMPLATE = """
-You help users analyze data and answer questions using the most suitable method. 
-
-For each user query:
-- If SQL is the most suitable, provide a detailed explanation of the SQL steps first, then follow with the SQLite query. Assume data is clean and well-formatted.
-- If SQL is not suitable: answer using normal language.
-- Keep responses concise, ideally under 300 char.
-- After answering, provide up to 2 relevant follow-up questions that could deepen understanding or clarify the response. Each under 40 characters, formatted as:
-  '''Question 1'''
-  '''Question 2'''
-  Only include follow-up questions if they genuinely contribute to the response's context or understanding.
-- If a query is ambiguous or lacks details, ask clarifying questions. 
-Refer to the data schema provided at the end for details on table structure and column data types. 
-
-[Sample data]
-{table_samples}
-"""
-CSV_FORMAT_SYSTEM_PROMPT = "You help users format CSV."
-CSV_FORMAT_PROMPT_TEMPLATE = """
-I need to cleanup one CSV file so that it can be saved to database. For example:
-1. Remove all comma in numbers. 1,234 -> 1234
-2. Remove price symbols. $1,234.5 -> 1234.5
-3. Convert column head to lower case and replace space with underscore. "Total NTV" -> "total_ntv"
-
-The file is at path "{path}". Here are the first 3 rows: 
-{sample}
-
-Return python script to read from path, format the CSV, and write back to the original path.
-You are only allowed to use pandas. 
-"""
-SINGLE_TABLE_SAMPLE_TEMPLATE = """
-table name: {name}
-{sample_data}
-"""
 
 #####################
 # To bypass file processing, uncomment:
@@ -135,11 +101,9 @@ def handle_upload(cnx_main, cnx_sample):
             uploaded_files = st.file_uploader("upload", key=st.session_state.id, accept_multiple_files=True, type="csv",
                                               label_visibility="collapsed")
             uploaded = st.form_submit_button("Upload")
-            if uploaded and len(uploaded_files) > 0:
-                upload_form.empty()
 
         if uploaded and len(uploaded_files) > 0:
-            # upload_form.empty()
+            upload_form.empty()
             logger.info(f"received {len(uploaded_files)} uploaded files.")
             with st.spinner("Processing uploaded files. This takes approximately 30s."):
                 _process_uploaded_paths(cnx_main, cnx_sample, uploaded_files)

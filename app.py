@@ -30,7 +30,6 @@ def setup_session():
         unsafe_allow_html=True,
     )
 
-    # Init openai key
     if not os.getenv('OPENAI_API_KEY'):
         os.environ["OPENAI_API_KEY"] = st.secrets["openai_secret_key"]
     openai.api_key = os.getenv('OPENAI_API_KEY')
@@ -72,12 +71,16 @@ if st.session_state.table_preview:
         elif pending_query[0] == PendingQuery.QUERY:
             res, follow_ups = query_helpers.query_openai_w_stream()
             append_non_user_message("assistant", res)
-            if sql:= utils.extract_code_from_string(res):
-                logger.debug(f"executing sql on sample: {sql}")
-                df = pd.read_sql_query(sql, cnx_sample)
-                append_table_item(f"SQL result on sample data (first {PREVIEW_CSV_ROWS} rows of each file)", df).show_on_screen()
-                append_non_user_message("button", BUTTON_TEXT_CONFIRM_APPLY_SQL, sql).show_on_screen()
-            for follow_up in follow_ups:
-                append_non_user_message("button", follow_up).show_on_screen()
+            try:
+                if sql:= utils.extract_code_from_string(res):
+                    logger.debug(f"executing sql on sample: {sql}")
+                    df = pd.read_sql_query(sql, cnx_sample)
+                    append_table_item(f"SQL result on sample data (first {PREVIEW_CSV_ROWS} rows of each file)", df).show_on_screen()
+                    append_non_user_message("button", BUTTON_TEXT_CONFIRM_APPLY_SQL, sql).show_on_screen()
+                for follow_up in follow_ups:
+                    append_non_user_message("button", follow_up).show_on_screen()
+            except Exception as e:
+                # Swallow error
+                logger.error(e)
 
         st.session_state.pending_query = None # Putting it at the bottom bc this will trigger a rerun

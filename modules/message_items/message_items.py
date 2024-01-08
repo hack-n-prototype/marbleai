@@ -12,7 +12,7 @@ class MessageItem(object):
         self.role = role
         self.content = content
 
-    def get_openai_message_obj(self):
+    def get_openai_obj(self):
         return {"role": self.role, "content": self.content}
 
     def show_on_screen(self):
@@ -31,24 +31,12 @@ class MessageItemAssistant(MessageItem):
     def __init__(self, content):
         super().__init__("assistant", content)
 
-class MessageItemStatus(MessageItem):
-    def __init__(self, content, prompt):
-        super().__init__("status", content)
-        self.prompt = prompt
-
-    def get_openai_message_obj(self):
-        return {"role": "assistant", "content": self.prompt} if self.prompt else None
-
-    def show_on_screen(self):
-        with st.status(self.content[0]):
-            st.write("\n\n".join(self.content[1:]))
-
 class MessageItemTable(MessageItem):
     def __init__(self, title, df):
         super().__init__("table", str(df.iat[0,0]) if df.shape == (1,1) else df)
         self.title = title
 
-    def get_openai_message_obj(self):
+    def get_openai_obj(self):
         return None
 
     def show_on_screen(self):

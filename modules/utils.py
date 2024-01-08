@@ -2,7 +2,7 @@ import string
 import random
 import re
 import tiktoken
-from modules import constants
+from modules.ai_constants import MODEL
 
 from modules.logger import get_logger
 logger = get_logger(__name__)
@@ -21,6 +21,7 @@ def extract_code_from_string(text):
         matches = re.findall(pattern, text, re.DOTALL)
         return matches[0]
     except:
+        # No sql in response, it's normal.
         pass
     return None
 
@@ -36,7 +37,7 @@ def convert_to_lowercase(s):
 
     return cleaned_string
 
-encoding = tiktoken.encoding_for_model(constants.MODEL)
+encoding = tiktoken.encoding_for_model(MODEL)
 def log_num_tokens_from_string(content, label="query"):
     PRICING = {
         "gpt-4-1106-preview-query": 0.01,
@@ -49,12 +50,12 @@ def log_num_tokens_from_string(content, label="query"):
     }
     length = len(encoding.encode(str(content)))
     logger.debug(f"[{label}] token length: " + str(length))
-    entry = f"{constants.MODEL}-{label}"
+    entry = f"{MODEL}-{label}"
     if entry in PRICING:
         logger.debug(f"[{label}] spend: $" + str(PRICING[entry] * length/1000.0))
     else:
         logger.debug(f"{entry} doesn't exist")
 
 def cleanup_array(arr):
-    meaningful_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-    return [item for item in arr if any(char in meaningful_chars for char in item)]
+    alphanumeric_set = set(string.ascii_letters + string.digits)
+    return [item for item in arr if any(char in alphanumeric_set for char in item)]

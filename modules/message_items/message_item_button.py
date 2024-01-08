@@ -13,7 +13,7 @@ class MessageItemButton(MessageItem):
         super().__init__("button", content)
         self.pending_query_info = sql if sql else content
 
-    def get_openai_message_obj(self):
+    def get_openai_obj(self):
         return None
 
     def show_on_screen(self):

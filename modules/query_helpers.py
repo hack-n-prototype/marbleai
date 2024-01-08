@@ -2,10 +2,9 @@
 Things related to asking openai and processing user queries
 """
 import openai
-from modules import constants
 import streamlit as st
 from modules import utils
-from modules.constants import PREVIEW_CSV_ROWS, STOP_TOKEN
+from modules.ai_constants import STOP_TOKEN, MODEL
 
 from modules.logger import get_logger
 logger = get_logger(__name__)
@@ -30,7 +29,7 @@ def _update_chat_stream(result):
 def _get_chat_history_for_api():
     history = []
     for item in st.session_state.messages:
-        if openai_message:= item.get_openai_message_obj():
+        if openai_message:= item.get_openai_obj():
             history.append(openai_message)
     return history
 
@@ -38,7 +37,7 @@ def query_openai_w_stream():
     history = _get_chat_history_for_api()
     utils.log_num_tokens_from_string(history)
     result = openai.ChatCompletion.create(
-                model=constants.MODEL,
+                model=MODEL,
                 messages=history,
                 temperature=0,
                 stream=True)
