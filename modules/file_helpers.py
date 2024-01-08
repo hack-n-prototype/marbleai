@@ -19,7 +19,7 @@ PROMPT_BASE_TEMPLATE = """
 You help users analyze data and answer questions using the most suitable method. 
 
 For each user query:
-- If SQL is the most suitable, provide a detailed explanation of the SQL steps first, then follow with the SQL query itself. Ensure to describe the logic and reasoning behind the chosen SQL approach. Assume data is clean and well-formatted.
+- If SQL is the most suitable, provide a detailed explanation of the SQL steps first, then follow with the SQLite query. Assume data is clean and well-formatted.
 - If SQL is not suitable: answer using normal language.
 - Keep responses concise, ideally under 300 char.
 - After answering, provide up to 2 relevant follow-up questions that could deepen understanding or clarify the response. Each under 40 characters, formatted as:
