@@ -52,22 +52,23 @@ class MessageItemTable(MessageItem):
         return None
 
     def show_on_screen(self):
-        if isinstance(self.content, str):
-            with st.chat_message("assistant"):
+        with st.chat_message("assistant"):
+            if isinstance(self.content, str):
                 st.markdown(f"{self.title}: {self.content}")
-            return
+                return
 
-        st.write(self.title)
-        if self.content.shape[0] <= PREVIEW_CSV_ROWS:
-            st.dataframe(self.content)
-            return
+            if self.content.shape[0] <= PREVIEW_CSV_ROWS:
+                st.write(self.title)
+                st.dataframe(self.content)
+                return
 
-        file_name = f"result_{st.session_state.id}_{generate_random_string(10)}.csv"
-        st.dataframe(self.content.head(PREVIEW_CSV_ROWS))
-        st.download_button(
-            label="Download full result as CSV",
-            data=self.content.to_csv().encode('utf-8'),
-            file_name=file_name,
-            mime='text/csv',
-            key=file_name,
-        )
+            st.write(f"{self.title} (First {PREVIEW_CSV_ROWS} rows)")
+            file_name = f"result_{st.session_state.id}_{generate_random_string(10)}.csv"
+            st.dataframe(self.content.head(PREVIEW_CSV_ROWS))
+            st.download_button(
+                label="Download full result as CSV",
+                data=self.content.to_csv().encode('utf-8'),
+                file_name=file_name,
+                mime='text/csv',
+                key=file_name,
+            )

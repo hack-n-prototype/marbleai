@@ -14,11 +14,15 @@ def extract_code_from_string(text):
     """
     Extract code from openai response
     """
-    # Regular expression to find code blocks wrapped in triple backticks
-    pattern = r"```(?:\w*\n)?(.*?)```"
-    # Using re.DOTALL to make '.' match any character including newline
-    matches = re.findall(pattern, text, re.DOTALL)
-    return matches[0]
+    try:
+        # Regular expression to find code blocks wrapped in triple backticks
+        pattern = r"```(?:\w*\n)?(.*?)```"
+        # Using re.DOTALL to make '.' match any character including newline
+        matches = re.findall(pattern, text, re.DOTALL)
+        return matches[0]
+    except:
+        pass
+    return None
 
 def convert_to_lowercase(s):
     """
@@ -50,3 +54,7 @@ def log_num_tokens_from_string(content, label="query"):
         logger.debug(f"[{label}] spend: $" + str(PRICING[entry] * length/1000.0))
     else:
         logger.debug(f"{entry} doesn't exist")
+
+def cleanup_array(arr):
+    meaningful_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+    return [item for item in arr if any(char in meaningful_chars for char in item)]

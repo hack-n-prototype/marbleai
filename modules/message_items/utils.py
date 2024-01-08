@@ -1,6 +1,7 @@
 import streamlit as st
 from modules.message_items.message_items import  MessageItemAssistant, MessageItemStatus, MessageItemSystem, MessageItemTable
 from modules.message_items.message_item_button import  MessageItemButton
+from modules.message_items.message_item_user import  MessageItemUser
 
 from modules.logger import get_logger
 logger = get_logger(__name__)

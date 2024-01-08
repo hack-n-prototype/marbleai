@@ -1,23 +1,13 @@
 import streamlit as st
-
 from modules.message_items.message_items import MessageItem
 
-QUERY_PROMPT_TEMPLATE = """
-User ask: {query}
-Explain SQL steps to answer user query. Don't provide SQL queries. Data is clean and well-formatted. Keep answer short, ideally under 300 char.
-"""
-
 class MessageItemUser(MessageItem):
-    def __init__(self, content, prompt=None):
+    def __init__(self, content, send_to_openai):
         super().__init__("user", content)
-        # prompt = None -> self.prompt = None
-        # prompt = "" -> generate self.prompt from content
-        # prompt is a string -> keep it
-        self.prompt = QUERY_PROMPT_TEMPLATE.format(query=content) if prompt == "" else prompt
+        self.send_to_openai = send_to_openai
 
     def get_openai_message_obj(self):
-        return None if self.prompt is None else {"role": "user", "content": self.prompt}
-
+        return {"role": "user", "content": self.content} if self.send_to_openai else None
 
 def _remove_tailing_buttons():
     removed = False
@@ -26,9 +16,9 @@ def _remove_tailing_buttons():
         removed = True
     return removed
 
-def append_user_item(content, prompt=""):
+def append_user_item(content, send_to_opena=True):
     rerun = _remove_tailing_buttons()
-    item = MessageItemUser(content, prompt)
+    item = MessageItemUser(content, send_to_opena)
     st.session_state.messages.append(item)
 
     if rerun:

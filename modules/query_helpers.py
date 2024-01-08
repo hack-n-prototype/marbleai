@@ -5,7 +5,7 @@ import openai
 from modules import constants
 import streamlit as st
 from modules import utils
-from modules.constants import PREVIEW_CSV_ROWS
+from modules.constants import PREVIEW_CSV_ROWS, STOP_TOKEN
 
 from modules.logger import get_logger
 logger = get_logger(__name__)
@@ -13,14 +13,19 @@ logger = get_logger(__name__)
 def _update_chat_stream(result):
     message_placeholder = st.empty()
     full_response = ""
+    follow_ups = ""
     for response in result:
         if response["choices"][0].delta:
-            full_response += (response["choices"][0].delta.content or "")
+            content = response["choices"][0].delta.content or ""
+            if follow_ups or STOP_TOKEN in content:
+                follow_ups += content
+            else:
+                full_response += content
         else:
             full_response += ""
         message_placeholder.markdown(full_response + "▌")
     message_placeholder.markdown(full_response)
-    return full_response
+    return full_response, utils.cleanup_array(follow_ups.split(STOP_TOKEN))
 
 def _get_chat_history_for_api():
     history = []
@@ -29,26 +34,15 @@ def _get_chat_history_for_api():
             history.append(openai_message)
     return history
 
-def query_openai(use_stream = False):
+def query_openai_w_stream():
     history = _get_chat_history_for_api()
     utils.log_num_tokens_from_string(history)
     result = openai.ChatCompletion.create(
                 model=constants.MODEL,
                 messages=history,
                 temperature=0,
-                stream=use_stream)
-    if use_stream:
-        with st.chat_message("assistant"):
-            response = _update_chat_stream(result)
-    else:
-        response = result["choices"][0]["message"]["content"]
+                stream=True)
+    with st.chat_message("assistant"):
+        response, follow_ups = _update_chat_stream(result)
     utils.log_num_tokens_from_string(response, label="response")
-    return response
-
-def query_sql_w_status():
-    status = ["Generating SQL queries. This may take approximately 10s."]
-    st.write(status[-1])
-    sql = utils.extract_code_from_string(query_openai(False))
-    status.append(f"Applying `{sql}` on sample data (first {PREVIEW_CSV_ROWS} rows)...")
-    st.write(status[-1])
-    return status, sql
+    return response, follow_ups or []

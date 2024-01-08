@@ -16,7 +16,20 @@ logger = get_logger(__name__)
 pd.set_option('display.max_columns', None)
 
 PROMPT_BASE_TEMPLATE = """
-I have {length} tables in database.
+You help users analyze data and answer questions using the most suitable method. 
+
+For each user query:
+- If SQL is the most suitable, provide a detailed explanation of the SQL steps first, then follow with the SQL query itself. Ensure to describe the logic and reasoning behind the chosen SQL approach. Assume data is clean and well-formatted.
+- If SQL is not suitable: answer using normal language.
+- Keep responses concise, ideally under 300 char.
+- After answering, provide up to 2 relevant follow-up questions that could deepen understanding or clarify the response. Each under 40 characters, formatted as:
+  '''Question 1'''
+  '''Question 2'''
+  Only include follow-up questions if they genuinely contribute to the response's context or understanding.
+- If a query is ambiguous or lacks details, ask clarifying questions. 
+Refer to the data schema provided at the end for details on table structure and column data types. 
+
+[Sample data]
 {table_samples}
 """
 CSV_FORMAT_SYSTEM_PROMPT = "You help users format CSV."
@@ -48,7 +61,7 @@ def _get_temp_filepath_from_filename(file_name):
 
 def _get_script_to_cleanup_csv(file_name, df):
     # import time
-    # time.sleep(3)
+    # time.sleep(1)
     # return file_name, ""
     path = _get_temp_filepath_from_filename(file_name)
     prompt = CSV_FORMAT_PROMPT_TEMPLATE.format(path=path, sample=df.head(API_CSV_ROWS))
@@ -107,7 +120,7 @@ def _process_uploaded_paths(cnx_main, cnx_sample, uploaded_files):
         table_preview.append((file_name, df_map[file_name].head(PREVIEW_CSV_ROWS)))
 
     ### TODO: add info about unique & null item
-    prompt_base = PROMPT_BASE_TEMPLATE.format(length=len(uploaded_files), table_samples="\n".join(prompt_table_samples))
+    prompt_base = PROMPT_BASE_TEMPLATE.format(table_samples="\n".join(prompt_table_samples))
     append_non_user_message("system", prompt_base)
     logger.debug(f"prompt base: {prompt_base}")
     st.session_state.table_preview = table_preview
