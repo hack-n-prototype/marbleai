@@ -19,7 +19,9 @@ def _ask_for_user_email():
     if _is_valid_email(user_email:= cookie_manager.get("user_email")):
         return user_email
 
-    if _is_valid_email(user_email:= st.text_input("Your name or email: ")):
+    user_email = st.text_input("Your name or email: ")
+    st.button("Submit")
+    if _is_valid_email(user_email):
         cookie_manager.set("user_email", user_email)
         time.sleep(1) # need this so that cookie can finish writing
         return user_email
